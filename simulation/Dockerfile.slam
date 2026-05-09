@@ -1,0 +1,68 @@
+# =============================================================================
+# Dockerfile.slam  —  fastbot-ros2-slam
+# Build context: project root (fastbot_ros2_docker/)
+#
+# Two runtime modes — switch via compose command: override:
+#   Mapping mode:    ros2 launch fastbot_slam cartographer.launch.py
+#   Navigation mode: ros2 launch fastbot_slam localization.launch.py
+#
+# Build:
+#   docker build -f simulation/Dockerfile.slam -t <repo>:fastbot-ros2-slam .
+# Test:
+#   docker run --rm -it --network host <repo>:fastbot-ros2-slam bash
+#   # verify: ros2 pkg list | grep cartographer | grep nav2
+# =============================================================================
+FROM osrf/ros:humble-desktop
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 SLAM + Navigation Image"
+
+# Install Cartographer (mapping) + Nav2 (navigation/AMCL)
+# Both installed in same image — runtime mode selected via launch file
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-cartographer \
+    ros-humble-cartographer-ros \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-slam-toolbox \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    ros-humble-robot-state-publisher \
+    ros-humble-xacro \
+    python3-colcon-common-extensions \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+# Environment
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+
+# Copy packages from project root into image
+RUN mkdir -p /ros2_ws/src
+COPY fastbot_description /ros2_ws/src/fastbot_description
+COPY fastbot_slam        /ros2_ws/src/fastbot_slam
+
+# Build workspace at image build time
+WORKDIR /ros2_ws
+RUN /bin/bash -c "apt-get update \
+    && source /opt/ros/humble/setup.bash \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && rm -rf /var/lib/apt/lists/*"
+
+# Source workspace for interactive shells
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Default: mapping mode
+# Override in docker-compose to switch to navigation mode:
+#   command: ros2 launch fastbot_slam localization.launch.py
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "fastbot_slam", "cartographer.launch.py"]

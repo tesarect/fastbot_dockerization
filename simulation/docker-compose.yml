@@ -1,0 +1,71 @@
+# =============================================================================
+# docker-compose.yaml  —  FastBot Simulation Base Services
+#
+# Usage:
+#   Mapping mode (default):
+#     docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up
+#
+#   Navigation mode (map already saved):
+#     SLAM_CMD="ros2 launch fastbot_slam localization.launch.py" \
+#     docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up
+# =============================================================================
+
+version: "3.7"
+
+services:
+
+  # Gazebo simulation — publishes /scan /odom /tf /clock
+  gazebo:
+    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-gazebo
+    container_name: fastbot-ros2-gazebo
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    networks:
+      - ros2_network
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - DISPLAY
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_gazebo one_fastbot_room.launch.py
+
+  # # SLAM container — default: mapping via cartographer
+  # # Override command for navigation mode (AMCL + Nav2):
+  # #   command: ros2 launch fastbot_slam localization.launch.py
+  # slam:
+  #   image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-slam
+  #   container_name: fastbot-ros2-slam
+  #   networks:
+  #     - ros2_network
+  #   environment:
+  #     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+  #     - ROS_DOMAIN_ID=0
+  #   depends_on:
+  #     - gazebo
+  #   stdin_open: true
+  #   tty: true
+  #   command: ros2 launch fastbot_slam cartographer.launch.py
+
+  # # Webapp — ROSBridge + Web Video Server + TF2 Republisher + HTTP server
+  # webapp:
+  #   image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-webapp
+  #   container_name: fastbot-ros2-webapp
+  #   networks:
+  #     - ros2_network
+  #   ports:
+  #     - "9090:9090"    # ROSBridge WebSocket
+  #     - "11315:11315"  # Web Video Server
+  #     - "8000:8000"    # Web App HTTP
+  #   environment:
+  #     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+  #     - ROS_DOMAIN_ID=0
+  #   depends_on:
+  #     - slam
+  #   stdin_open: true
+  #   tty: true
+  #   command: /ros2_ws/start_web_services.sh
+
+networks:
+  ros2_network:
+    driver: bridge
