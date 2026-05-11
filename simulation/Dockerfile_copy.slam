@@ -56,15 +56,14 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
 # Copy map poses config
 COPY simulation/config/map_poses.yaml /ros2_ws/map_poses.yaml
 
-# Mount point for new maps (volume mount from host)
+# Mount point for custom maps from real robot
 RUN mkdir -p /maps
 
 COPY simulation/scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-COPY simulation/scripts/start_slam.sh /ros2_ws/start_slam.sh
+COPY simulation/start_slam.sh /ros2_ws/start_slam.sh
 RUN chmod +x /ros2_ws/start_slam.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-# Default: mapping mode
 CMD ["/ros2_ws/start_slam.sh"]

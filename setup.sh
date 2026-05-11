@@ -27,21 +27,24 @@ sudo sed -i 's|http://security.ubuntu.com/ubuntu|mirror://mirrors.ubuntu.com/mir
 echo "🔄 Updating package lists..."
 sudo apt-get update
 
+echo "🇽𝟏𝟏 Installing Docker..."
+sudo apt --fix-broken install
+sudo apt install x11-xserver-utils
+
 echo "🐳 Installing Docker..."
 sudo apt-get install -y docker.io docker-compose
 
 echo "🚀 Starting Docker service..."
 sudo service docker start
+xhost +local:docker
 
 echo "👤 Adding user to docker group..."
 sudo usermod -aG docker $USER
 
 
-
 echo "⚠️ Applying docker group changes..."
 # exec sg docker newgrp `id -gn`
 echo 'if ! id -nG | grep -qw docker; then exec newgrp docker; fi' >> ~/.bashrc
-
 
 
 echo "✅ Setup complete!"
