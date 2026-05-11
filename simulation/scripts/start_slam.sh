@@ -57,6 +57,23 @@ print(val)
 # ── Helper: publish initial pose ──────────────────────────────────────────────
 publish_initial_pose() {
     local map_name=$1
+
+    # Check if initial_pose exists for this map ------------------- NOT TESTED YET
+    local has_pose=$(python3 -c "
+import yaml
+with open('${POSES_FILE}') as f:
+    data = yaml.safe_load(f)
+has = '${map_name}' in data and 'initial_pose' in data.get('${map_name}', {})
+print('yes' if has else 'no')
+")
+
+    if [ "$has_pose" = "no" ]; then
+        echo " No initial pose defined for '${map_name}'"
+        echo " Set manually via RViz → '2D Pose Estimate' button"
+        return 0  # skip publishing, AMCL will wait for manual input
+    fi
+    # ------------------- ------------------- ------------------- -------------------
+
     local x=$(get_pose_value "$map_name" x)
     local y=$(get_pose_value "$map_name" y)
     local yaw=$(get_pose_value "$map_name" yaw)
