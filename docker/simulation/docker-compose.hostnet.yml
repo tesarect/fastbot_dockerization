@@ -1,0 +1,8 @@
+version: "3.7"
+
+services:
+  gazebo:
+    network_mode: host
+
+  slam:
+    network_mode: host

@@ -1,0 +1,36 @@
+room_map:
+
+Couch:
+:/ros2_ws# ros2 topic echo /clicked_point
+header:
+  stamp:
+    sec: 1778484054
+    nanosec: 413827649
+  frame_id: map
+point:
+  x: -0.6155719757080078
+  y: -1.465958595275879
+  z: -0.0008158683776855469
+
+initialpose
+header:
+  stamp:
+    sec: 1778484358
+    nanosec: 133963734
+  frame_id: map
+point:
+  x: 0.03199052810668945
+  y: 0.058943748474121094
+  z: 0.002780437469482422
+
+small_room:
+initialpose
+- Translation: [1.650, -2.927, -0.000]
+- Rotation: in Quaternion (xyzw) [0.000, -0.000, 1.000, 0.032]
+- Rotation: in RPY (radian) [-0.000, -0.000, 3.078]
+- Rotation: in RPY (degree) [-0.001, -0.002, 176.380]
+- Matrix:
+ -0.998 -0.063  0.000  1.650
+  0.063 -0.998 -0.000 -2.927
+  0.000 -0.000  1.000 -0.000
+  0.000  0.000  0.000  1.000

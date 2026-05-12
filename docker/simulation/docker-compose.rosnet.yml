@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  gazebo:
+    networks: ros2_network
+
+  slam:
+    networks: ros2_network
+
+networks:
+  ros2_network:
+    driver: bridge
