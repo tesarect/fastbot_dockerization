@@ -1,0 +1,74 @@
+# =============================================================================
+# Dockerfile.gazebo  —  fastbot-ros2-gazebo
+# Build context: project root (fastbot_ros2_docker/)
+#
+# Build:
+#   docker build -f simulation/Dockerfile.gazebo -t <repo>:fastbot-ros2-gazebo .
+# =============================================================================
+FROM osrf/ros:humble-desktop
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 Gazebo Simulation Image"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
+    gazebo \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-gazebo-plugins \
+    ros-humble-robot-state-publisher \
+    ros-humble-joint-state-publisher \
+    ros-humble-xacro \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    ros-humble-nav-msgs \
+    ros-humble-sensor-msgs \
+    ros-humble-geometry-msgs \
+    ros-humble-teleop-twist-keyboard \
+    ros-humble-rosbridge-server \
+    ros-humble-rosbridge-suite \
+    python3-colcon-common-extensions \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV DISPLAY=
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+#  TODO : revert it back to direct sourcing path from the copied path
+#           remove all the resolved hard files and their reff's
+RUN mkdir -p /ros2_ws/src
+COPY fastbot_description /ros2_ws/src/fastbot_description
+COPY fastbot_gazebo      /ros2_ws/src/fastbot_gazebo
+# Instead of building from source, use pre-built install artifacts
+COPY fastbot_description_install_resolved /ros2_ws/install/fastbot_description
+COPY fastbot_gazebo_install_resolved      /ros2_ws/install/fastbot_gazebo
+COPY install_setup.bash                   /ros2_ws/install/setup.bash
+COPY install_setup.sh                     /ros2_ws/install/setup.sh
+COPY install_local_setup.bash             /ros2_ws/install/local_setup.bash
+
+# Source workspace for interactive shells
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+# Generate workspace setup.bash that sources both packages
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash \
+    && mkdir -p /ros2_ws \
+    && cd /ros2_ws \
+    && colcon build --merge-install 2>/dev/null || true"
+
+ENV GAZEBO_MODEL_PATH=/ros2_ws/src:/ros2_ws/install/fastbot_gazebo/share/fastbot_gazebo/models:/usr/share/gazebo-11/models
+
+COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 9090
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "fastbot_gazebo", "one_fastbot_room.launch.py"]

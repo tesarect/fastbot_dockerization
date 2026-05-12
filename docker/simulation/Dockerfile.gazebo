@@ -1,0 +1,72 @@
+# =============================================================================
+# Dockerfile.gazebo  —  fastbot-ros2-gazebo
+# Build context: project root (fastbot_ros2_docker/)
+#
+# Build:
+#   docker build -f simulation/Dockerfile.gazebo -t <repo>:fastbot-ros2-gazebo .
+# =============================================================================
+FROM osrf/ros:humble-desktop
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 Gazebo Simulation Image"
+
+# Install Gazebo Classic 11 + ROS bridge + dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
+    gazebo \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-gazebo-plugins \
+    ros-humble-robot-state-publisher \
+    ros-humble-joint-state-publisher \
+    ros-humble-xacro \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    ros-humble-nav-msgs \
+    ros-humble-sensor-msgs \
+    ros-humble-geometry-msgs \
+    ros-humble-teleop-twist-keyboard \
+    ros-humble-rosbridge-server \
+    ros-humble-rosbridge-suite \
+    python3-colcon-common-extensions \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+# Runtime environment
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV DISPLAY=
+
+# Copy source packages from project root
+RUN mkdir -p /ros2_ws/src
+COPY fastbot_description /ros2_ws/src/fastbot_description
+COPY fastbot_gazebo      /ros2_ws/src/fastbot_gazebo
+
+# Build workspace — GAZEBO_MODEL_PATH is set by the launch file at runtime
+WORKDIR /ros2_ws
+RUN /bin/bash -c "apt-get update \
+    && source /opt/ros/humble/setup.bash \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && rm -rf /var/lib/apt/lists/*"
+
+# NOTE: Create Gazebo model symlink so model://fastbot_description/... resolves
+#       Mirrors what the host rosject environment sets up automatically
+RUN mkdir -p /root/.gazebo/models && \
+    ln -s /ros2_ws/install/fastbot_description/share/fastbot_description \
+          /root/.gazebo/models/fastbot_description
+
+# Source workspace for interactive shells
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 9090
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "fastbot_gazebo", "one_fastbot_room.launch.py"]

@@ -1,0 +1,70 @@
+# =============================================================================
+# Dockerfile.slam  —  fastbot-ros2-slam
+# Build context: project root (fastbot_ros2_docker/)
+#
+# Runtime modes via SLAM_MODE env var:
+#   cartographer  → mapping (default)
+#   localization  → navigation with pose from map_poses.yaml
+#   pathplanner   → Nav2 path planning
+#
+# Build:
+#   docker build -f simulation/Dockerfile.slam -t <repo>:fastbot-ros2-slam .
+# =============================================================================
+FROM osrf/ros:humble-desktop
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 SLAM + Navigation Image"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-cartographer \
+    ros-humble-cartographer-ros \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-robot-state-publisher \
+    ros-humble-xacro \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    python3-colcon-common-extensions \
+    python3-pip \
+    python3-yaml \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+ENV SLAM_MODE=cartographer
+ENV MAP_NAME=small_apartment
+ENV MAP_FILE=
+
+RUN mkdir -p /ros2_ws/src
+COPY fastbot_description /ros2_ws/src/fastbot_description
+COPY fastbot_slam        /ros2_ws/src/fastbot_slam
+
+WORKDIR /ros2_ws
+RUN /bin/bash -c "apt-get update \
+    && source /opt/ros/humble/setup.bash \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && rm -rf /var/lib/apt/lists/*"
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+# Copy map poses config
+COPY simulation/config/map_poses.yaml /ros2_ws/map_poses.yaml
+
+# Mount point for new maps (volume mount from host)
+RUN mkdir -p /maps
+
+COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+COPY simulation/scripts/start_slam.sh /ros2_ws/start_slam.sh
+RUN chmod +x /ros2_ws/start_slam.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+# Default: mapping mode
+CMD ["/ros2_ws/start_slam.sh"]
