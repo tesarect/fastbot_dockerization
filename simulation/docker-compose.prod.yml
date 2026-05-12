@@ -1,0 +1,69 @@
+# =============================================================================
+# docker-compose.prod.yaml  —  Production overrides for Linux
+#
+# Adds: X11 forwarding, healthchecks, restart policy, memory limits
+#
+# Usage:
+#   docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+# =============================================================================
+
+version: "3.7"
+
+services:
+
+  gazebo:
+    environment:
+      - DISPLAY
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          # memory: 4G
+          memory: 6G
+        reservations:
+          # memory: 2G
+          memory: 4G
+    healthcheck:
+      test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /clock"]
+      interval: 10s
+      # timeout: 5s
+      timeout: 15s
+      retries: 3
+      # start_period: 30s
+      start_period: 120s
+
+  # slam:
+  #   environment:
+  #     - DISPLAY
+  #   volumes:
+  #     - /tmp/.X11-unix:/tmp/.X11-unix:rw
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 2G
+  #       reservations:
+  #         memory: 1G
+  #   healthcheck:
+  #     test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /map"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 45s
+
+  # webapp:
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
+  #       reservations:
+  #         memory: 512M
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+  #     start_period: 15s
