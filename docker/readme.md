@@ -168,3 +168,14 @@ GAZEBO_MODEL_PATH=/home/user/ros2_ws/install/fastbot_gazebo/share/fastbot_gazebo
 
 $ echo $GAZEBO_MODEL_PATH
 /usr/share/gazebo-11/models:/usr/share/gazebo-11/models:/usr/share/gazebo-9/models:/usr/share/gazebo/models_robox
+
+
+# Real Environment
+Join code for group tesarect-fastbot is:
+karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
+
+You can use it in Husarnet CLI like this:
+sudo husarnet join karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
+
+Husarnet join code:
+fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61

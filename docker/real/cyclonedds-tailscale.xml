@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS — Tailscale VPN
+  Update Peer addresses with your Tailscale IPs:
+    Pi:     tailscale ip -4  (run on Pi)
+    Laptop: tailscale ip -4  (run on laptop)
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="tailscale0" priority="default" />
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+    </General>
+    <Discovery>
+      <Peers>
+        <Peer address="100.x.x.x"/>  <!-- Pi Tailscale IP -->
+        <Peer address="100.x.x.x"/>  <!-- Laptop Tailscale IP -->
+      </Peers>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+    </Discovery>
+    <Tracing>
+      <Verbosity>warning</Verbosity>
+      <OutputFile>stderr</OutputFile>
+    </Tracing>
+  </Domain>
+</CycloneDDS>

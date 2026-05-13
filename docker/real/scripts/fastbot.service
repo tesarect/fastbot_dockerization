@@ -1,0 +1,33 @@
+# =============================================================================
+# fastbot.service — systemd service for auto-starting FastBot on boot
+#
+# Install:
+#   sudo cp fastbot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable fastbot.service
+#   sudo systemctl start fastbot.service
+#
+# Check status:
+#   sudo systemctl status fastbot.service
+#   sudo journalctl -u fastbot.service -f
+# =============================================================================
+
+[Unit]
+Description=FastBot ROS2 Real Robot
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/fastbot/ros2_ws/src/docker/real
+ExecStart=/usr/bin/docker-compose up -d robot
+ExecStop=/usr/bin/docker-compose down
+TimeoutStartSec=120
+User=fastbot
+Group=docker
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

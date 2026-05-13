@@ -1,0 +1,67 @@
+# =============================================================================
+# Dockerfile.real  —  fastbot-ros2-real
+# Real robot bringup: camera + lidar + motor drivers
+#
+# Build ON the Raspberry Pi (ARM64) — Docker pulls correct arch automatically:
+#   docker build -f docker/real/Dockerfile.real -t <repo>:fastbot-ros2-real .
+#
+# Build context: ros2_ws/src/ (one level above docker/)
+# =============================================================================
+FROM ros:humble-ros-base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 Real Robot — drivers for camera, lidar, motors"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-colcon-common-extensions \
+    build-essential \
+    python3-serial \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-xacro \
+    ros-humble-tf2-ros \
+    ros-humble-joint-state-publisher \
+    ros-humble-robot-state-publisher \
+    # Lidar dependencies
+    libboost-all-dev \
+    libpcl-dev \
+    libpcap-dev \
+    ros-humble-pcl-conversions \
+    ros-humble-diagnostic-updater \
+    # Camera
+    ros-humble-v4l2-camera \
+    ros-humble-image-transport-plugins \
+    v4l-utils \
+    vim \
+    nano \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws
+
+# Copy required packages from build context (ros2_ws/src/)
+COPY fastbot_bringup         /ros2_ws/src/fastbot_bringup
+COPY fastbot_description     /ros2_ws/src/fastbot_description
+COPY serial_motor            /ros2_ws/src/serial_motor
+COPY serial_motor_msgs       /ros2_ws/src/serial_motor_msgs
+COPY Lslidar_ROS2_driver     /ros2_ws/src/Lslidar_ROS2_driver
+
+RUN /bin/bash -c "apt-get update \
+    && source /opt/ros/humble/setup.bash \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && rm -rf /var/lib/apt/lists/*"
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+COPY docker/real/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "fastbot_bringup", "bringup.launch.xml"]

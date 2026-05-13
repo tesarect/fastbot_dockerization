@@ -1,0 +1,81 @@
+# =============================================================================
+# docker-compose.yaml  —  FastBot Real Robot
+#
+# Runs ON the Raspberry Pi.
+#
+# Usage:
+#   Robot only:          docker-compose up -d robot
+#   Robot + SLAM:        docker-compose up -d
+#   View logs:           docker-compose logs -f
+#   Stop:                docker-compose down
+#   Save map:            docker exec -it fastbot-ros2-slam-real bash
+#                        ros2 run nav2_map_server map_saver_cli -f /maps/my_map
+#
+# Network modes:
+#   Local (default):     uses cyclonedds-local.xml — no VPN needed
+#   Husarnet (primary):  change volume to cyclonedds-husarnet.xml
+#   Tailscale (fallback):change volume to cyclonedds-tailscale.xml
+#
+# Device mapping (adjust if your devices differ):
+#   /dev/ttyACM0 → /dev/lslidar       (LSlidar N10 via USB-C)
+#   /dev/ttyUSB0 → /dev/arduino_nano  (Arduino Nano motor controller)
+#   /dev/video0  → /dev/video0        (Raspberry Pi camera)
+# =============================================================================
+
+version: "3.7"
+
+services:
+
+  robot:
+    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-real
+    container_name: fastbot-ros2-real
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      # Switch to cyclonedds-husarnet.xml for remote access via Husarnet
+      # Switch to cyclonedds-tailscale.xml for remote access via Tailscale
+      - ./config/cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
+    devices:
+      - /dev/ttyACM0:/dev/lslidar       # LSlidar N10
+      - /dev/ttyUSB0:/dev/arduino_nano  # Arduino Nano
+      - /dev/video0:/dev/video0         # Camera
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_bringup bringup.launch.xml
+    healthcheck:
+      test: ["CMD", "bash", "-c",
+             "source /opt/ros/humble/setup.bash && \
+              source /ros2_ws/install/setup.bash && \
+              ros2 topic list | grep -q /fastbot/scan"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  slam:
+    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-slam-real
+    container_name: fastbot-ros2-slam-real
+    network_mode: host
+    restart: "no"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      - ./config/cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
+      - fastbot_maps:/maps
+    depends_on:
+      robot:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_slam cartographer.launch.py use_sim_time:=False
+
+volumes:
+  fastbot_maps:
+    name: fastbot-maps-real
