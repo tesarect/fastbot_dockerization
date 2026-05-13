@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS — Husarnet VPN
+  Uses hostnames (fastbot-pi, fastbot-dev) set when joining Husarnet network.
+  Hostnames resolve to IPv6 addresses via /etc/hosts automatically.
+
+  Setup:
+    Pi:     sudo husarnet join <join-code> fastbot-pi
+    Laptop: sudo husarnet join <join-code> fastbot-dev
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="hnet0" />
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+      <Transport>udp6</Transport>
+    </General>
+    <Discovery>
+      <Peers>
+        <Peer address="fastbot-pi"/>
+        <Peer address="fastbot-dev"/>
+      </Peers>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+    </Discovery>
+    <Tracing>
+      <Verbosity>warning</Verbosity>
+      <OutputFile>stderr</OutputFile>
+    </Tracing>
+  </Domain>
+</CycloneDDS>

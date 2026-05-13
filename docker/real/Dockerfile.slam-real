@@ -1,0 +1,52 @@
+# =============================================================================
+# Dockerfile.slam-real  —  fastbot-ros2-slam-real
+# Lightweight SLAM for Raspberry Pi — cartographer only, no Nav2
+# Nav2/RViz run on external laptop to save Pi resources
+#
+# Build ON the Raspberry Pi:
+#   docker build -f docker/real/Dockerfile.slam-real \
+#     -t <repo>:fastbot-ros2-slam-real .
+# =============================================================================
+FROM ros:humble-ros-base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 Real Robot SLAM — Cartographer (lightweight)"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-colcon-common-extensions \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-cartographer \
+    ros-humble-cartographer-ros \
+    ros-humble-nav2-map-server \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws
+
+COPY fastbot_slam /ros2_ws/src/fastbot_slam
+
+RUN /bin/bash -c "apt-get update \
+    && source /opt/ros/humble/setup.bash \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && rm -rf /var/lib/apt/lists/*"
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+# Mount point for saving maps
+RUN mkdir -p /maps
+
+COPY docker/real/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "fastbot_slam", "cartographer.launch.py", "use_sim_time:=False"]

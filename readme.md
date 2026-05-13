@@ -115,7 +115,12 @@ $ docker volume inspect fastbot-maps
 ```
 
 # Load saved maps
-TODO: whats the default map and list the available maps
+Available maps
+    - small_appartment (Default)
+    - room_map         (small_appartment retouched)
+    - small_appartment
+    - small_appartment_rotated
+
 ## From Volume space
 ```
 docker-compose -f docker-compose.yml down
