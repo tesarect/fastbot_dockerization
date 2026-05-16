@@ -19,8 +19,8 @@
     </General>
     <Discovery>
       <Peers>
-        <Peer address="fastbot-pi"/>
-        <Peer address="fastbot-dev"/>
+        <Peer address="fastbot"/>
+        <Peer address="rosman"/>
       </Peers>
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>

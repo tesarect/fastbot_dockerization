@@ -13,9 +13,5 @@
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
     </Discovery>
-    <Tracing>
-      <Verbosity>warning</Verbosity>
-      <OutputFile>stderr</OutputFile>
-    </Tracing>
   </Domain>
 </CycloneDDS>

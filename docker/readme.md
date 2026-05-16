@@ -179,3 +179,113 @@ sudo husarnet join karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
 
 Husarnet join code:
 fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61
+
+
+$ ros2 topic list
+/parameter_events
+/rosout
+fastbot@fastbot:~/ros2_ws/src/docker/real$ docker-compose up -d
+Creating fastbot-ros2-real ... done
+Creating fastbot-ros2-slam-real ... done
+fastbot@fastbot:~/ros2_ws/src/docker/real$ ros2 topic list
+/clock
+/constraint_list
+/diagnostics
+/fastbot/camera_info
+/fastbot/cmd_vel
+/fastbot/encoder_vals
+/fastbot/image_raw
+/fastbot/image_raw/compressed
+/fastbot/image_raw/compressedDepth
+/fastbot/image_raw/theora
+/fastbot/joint_states
+/fastbot/motor_vels
+/fastbot/odom
+/fastbot/scan
+/fastbot_robot_description
+/landmark_poses_list
+/lslidar_driver_node/transition_event
+/lslidar_order
+/map
+/parameter_events
+/rosout
+/scan_matched_points2
+/submap_list
+/tf
+/tf_static
+/trajectory_node_list
+fastbot@fastbot:~/ros2_ws/src/docker/real$ docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.sh && source /ros2_ws/install/setup.sh && ros2 topic list"
+/clock
+/constraint_list
+/diagnostics
+/fastbot/camera_info
+/fastbot/cmd_vel
+/fastbot/encoder_vals
+/fastbot/image_raw
+/fastbot/image_raw/compressed
+/fastbot/image_raw/compressedDepth
+/fastbot/image_raw/theora
+/fastbot/joint_states
+/fastbot/motor_vels
+/fastbot/odom
+/fastbot/scan
+/fastbot_robot_description
+/landmark_poses_list
+/lslidar_driver_node/transition_event
+/lslidar_order
+/map
+/parameter_events
+/rosout
+/scan_matched_points2
+/submap_list
+/tf
+/tf_static
+/trajectory_node_list
+
+$ cat /etc/hosts | grep managed
+fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61 fastbot # managed by Husarnet
+fc94:b2de:c13c:c1ef:e52b:4880:6ae2:32b1 husarnet-local # managed by Husarnet
+fc94:b2de:c13c:c1ef:e52b:4880:6ae2:32b1 rosman # managed by Husarnet
+
+sudo systemctl stop fastbot.service
+# or
+docker-compose down
+
+# Then start with what you need:
+docker-compose -f docker-compose.yaml up -d                                    # local + slam
+docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml up -d   # remote + slam
+
+1. Connecting from external machine
+After starting husarnet compose on Pi:
+On external machine (laptop):
+bash# Set ROS environment
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export ROS_DOMAIN_ID=0
+export CYCLONEDDS_URI=file:///home/rosman/cyclonedds-husarnet.xml
+
+# Verify Husarnet is connected
+husarnet status
+
+# List topics from Pi
+ros2 topic list
+
+# Run RViz
+rviz2
+
+The laptop needs ROS2 Humble installed. The cyclonedds-husarnet.xml on the laptop should have the correct peer hostnames matching what Husarnet assigned.
+
+2. Topics visible on Pi host with Husarnet config
+Yes — but with one condition. The Pi host needs to use the same DDS config as the containers:
+bash# On Pi host — match the container's DDS config
+export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export ROS_DOMAIN_ID=0
+
+ros2 topic list
+
+Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
+Summary:
+ScenarioContainer configHost needsLocalno CYCLONEDDS_URInothing (default multicast)Husarnetcyclonedds-husarnet.xmlsame XML exported
+So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
+
+
