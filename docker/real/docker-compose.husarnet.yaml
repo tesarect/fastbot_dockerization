@@ -1,0 +1,14 @@
+services:
+  robot:
+    environment:
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      - ./config/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+      - /etc/hosts:/etc/hosts:ro    # share host's Husarnet hostname resolution
+
+  slam:
+    environment:
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      - ./config/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+      - /etc/hosts:/etc/hosts:ro    # share host's Husarnet hostname resolution

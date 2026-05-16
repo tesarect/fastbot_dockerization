@@ -35,11 +35,11 @@ services:
     environment:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=0
-      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
-    volumes:
+      #- CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    #volumes:
       # Switch to cyclonedds-husarnet.xml for remote access via Husarnet
+      #- ./config/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro 
       # Switch to cyclonedds-tailscale.xml for remote access via Tailscale
-      - ./config/cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
     devices:
       - /dev/ttyACM0:/dev/lslidar       # LSlidar N10
       - /dev/ttyUSB0:/dev/arduino_nano  # Arduino Nano
@@ -47,15 +47,6 @@ services:
     stdin_open: true
     tty: true
     command: ros2 launch fastbot_bringup bringup.launch.xml
-    healthcheck:
-      test: ["CMD", "bash", "-c",
-             "source /opt/ros/humble/setup.bash && \
-              source /ros2_ws/install/setup.bash && \
-              ros2 topic list | grep -q /fastbot/scan"]
-      interval: 5s
-      timeout: 10s
-      retries: 12
-      start_period: 15s
 
   slam:
     image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-slam-real
@@ -65,16 +56,16 @@ services:
     environment:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=0
-      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+      #- CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
     volumes:
-      - ./config/cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
+      # Switch to cyclonedds-husarnet.xml for remote access via Husarnet
+      #- ./config/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro 
       - fastbot_maps:/maps
     depends_on:
-      robot:
-        condition: service_healthy
+      - robot
     stdin_open: true
     tty: true
-    command: ros2 launch fastbot_slam cartographer.launch.py use_sim_time:=False
+    command: bash -c "sleep 15 && ros2 launch fastbot_slam cartographer.launch.py use_sim_time:=False"
 
 volumes:
   fastbot_maps:
