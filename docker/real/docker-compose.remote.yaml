@@ -30,7 +30,8 @@ version: "3.7"
 
 services:
   remote:
-    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-remote
+    #image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-remote
+    image: tesarect-cp22:fastbot-ros2-remote
     container_name: fastbot-remote
     network_mode: host
     environment:
