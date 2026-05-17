@@ -1,0 +1,57 @@
+# =============================================================================
+# Dockerfile.remote  —  fastbot-ros2-remote
+# Runs on external laptop (x86_64) to connect to real robot via Husarnet
+#
+# Provides:
+#   - RViz2 for map/sensor visualization
+#   - ROSBridge WebSocket (port 9090) for webapp
+#   - Web Video Server (port 11315) for camera stream
+#   - Husarnet VPN client for remote access
+#
+# Build on laptop (x86):
+#   cd ~/ros2_ws/src
+#   docker build -f docker/real/Dockerfile.remote \
+#     -t tesarect-cp22:fastbot-ros2-remote .
+# =============================================================================
+FROM osrf/ros:humble-desktop
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL description="FastBot ROS2 Remote — RViz + ROSBridge for external laptop"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-rosbridge-server \
+    ros-humble-rosbridge-suite \
+    ros-humble-web-video-server \
+    ros-humble-tf2-web-republisher \
+    ros-humble-nav2-map-server \
+    ros-humble-cartographer \
+    ros-humble-cartographer-ros \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-rviz2 \
+    python3-colcon-common-extensions \
+    iproute2 \
+    iputils-ping \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=0
+ENV DISPLAY=
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
+
+COPY docker/real/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+COPY docker/real/scripts/start_remote.sh /ros2_ws/start_remote.sh
+RUN chmod +x /ros2_ws/start_remote.sh
+
+EXPOSE 9090 11315 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/ros2_ws/start_remote.sh"]
