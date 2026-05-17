@@ -1,0 +1,50 @@
+# =============================================================================
+# docker-compose.remote.yaml — FastBot Remote (runs on LAPTOP, not Pi)
+#
+# Prerequisites:
+#   1. Husarnet installed and joined on laptop:
+#        curl https://install.husarnet.com/install.sh | sudo bash
+#        sudo husarnet join <join-code> rosman
+#   2. Pi running with local compose:
+#        (on Pi) docker-compose -f docker-compose.yaml up -d
+#   3. cyclonedds-husarnet.xml has correct hostnames (fastbot, rosman)
+#
+# Usage:
+#   Build image (once, on laptop):
+#     cd ~/ros2_ws/src
+#     docker build -f docker/real/Dockerfile.remote \
+#       -t tesarect-cp22:fastbot-ros2-remote .
+#
+#   Run:
+#     cd docker/real
+#     docker-compose -f docker-compose.remote.yaml up -d
+#
+#   RViz (in separate terminal):
+#     docker exec -it fastbot-remote rviz2
+#
+#   Stop:
+#     docker-compose -f docker-compose.remote.yaml down
+# =============================================================================
+
+version: "3.7"
+
+services:
+  remote:
+    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-remote
+    container_name: fastbot-remote
+    network_mode: host
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+      - DISPLAY=${DISPLAY:-:0}
+    volumes:
+      # Husarnet DDS config
+      - ./config/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+      # Share host /etc/hosts so Husarnet hostnames resolve
+      - /etc/hosts:/etc/hosts:ro
+      # X11 for RViz
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    stdin_open: true
+    tty: true
+    command: /ros2_ws/start_remote.sh
