@@ -37,17 +37,17 @@ rviz2 -d src/fastbot_description/rviz/fastbot.rviz"
 save a map:
 # In a new terminal — exec into slam container
 # Save map to the volume mount point
-```
+```bash
 docker exec -it fastbot-ros2-slam bash
 ```
 inside container:
-```
+```bash
 ros2 run nav2_map_server map_saver_cli \
   -f /maps/my_map \
   --ros-args -p save_map_timeout:=5.0
 ```
 or
-```
+```bash
 docker exec -it fastbot-ros2-slam bash -c \
 "source /opt/ros/humble/setup.bash &&
  source /ros2_ws/install/setup.bash &&
@@ -57,7 +57,7 @@ docker exec -it fastbot-ros2-slam bash -c \
 ```
 
 # Then after saving, switch to navigation:
-```
+```bash
 docker-compose -f docker-compose.yml down
 SLAM_MODE=localization MAP_FILE=/maps/my_map.yaml \
   docker-compose -f docker-compose.yml up
@@ -65,23 +65,23 @@ SLAM_MODE=localization MAP_FILE=/maps/my_map.yaml \
 
 # List files inside a named volume
 # Check what's in the fastbot-maps volume
-```
+```bash
 docker run --rm \
   -v fastbot-maps:/maps \
   alpine ls -la /maps
 ```
 or
-```
+```bash
 docker exec -it fastbot-ros2-slam bash
 ls -la /maps/
 ```
 or
-```
+```bash
 docker exec -it fastbot-ros2-slam bash -c \
 "ls -la /maps/"
 ```
 expected output:
-```
+```bash
 total 56
 drwxr-xr-x    2 root     root          4096 May 11 05:27 .
 drwxr-xr-x    1 root     root          4096 May 11 05:29 ..
@@ -91,11 +91,11 @@ drwxr-xr-x    1 root     root          4096 May 11 05:29 ..
 -rw-r--r--    1 root     root           125 May 11 05:27 my_map1.yaml
 ```
 # To explicitly remove volume
-```
+```bash
 docker volume rm fastbot-maps
 ```
 # Inspect Volume
-```
+```bash
 $ docker volume inspect fastbot-maps
 [
     {
@@ -117,7 +117,7 @@ $ docker volume inspect fastbot-maps
 # Load saved maps
 TODO: whats the default map and list the available maps
 ## From Volume space
-```
+```bash
 docker-compose -f docker-compose.yml down
 
 SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
@@ -180,7 +180,7 @@ sudo husarnet join karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
 Husarnet join code:
 fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61
 
-
+```bash
 $ ros2 topic list
 /parameter_events
 /rosout
@@ -241,25 +241,72 @@ fastbot@fastbot:~/ros2_ws/src/docker/real$ docker exec -it fastbot-ros2-real bas
 /tf
 /tf_static
 /trajectory_node_list
+```
 
-$ cat /etc/hosts | grep managed
-fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61 fastbot # managed by Husarnet
-fc94:b2de:c13c:c1ef:e52b:4880:6ae2:32b1 husarnet-local # managed by Husarnet
-fc94:b2de:c13c:c1ef:e52b:4880:6ae2:32b1 rosman # managed by Husarnet
+# Remote Connection
+### pre-req
+By default the fastbot will be running just the essential(camera, lidar and serial motor drivers). To establish a remote connection, bring the default running service down first
 
+```bash
 sudo systemctl stop fastbot.service
-# or
-docker-compose down
+```
+> [!WARNING]: To avoid stale containers its better to bring dontainer down completely. Because the `fastbot.service` just stops the container and does not downs the container completely, so that during shutdown, `<container> stop` is quicker that `<container> down`. So
+```bash
+cd docker/real # make sure you switch to docker files path
+# list out running containers
+docker-compose ps
+#bring the default down
+docker-compose -f docker-compose.yaml down
+```
+### Bring up the Remote connect on the Fastbot(Pi)
+The connection is established through Husarnet and all necessary setups are done through  `docker-compose.husarnet.yaml`
 
-# Then start with what you need:
-docker-compose -f docker-compose.yaml up -d                                    # local + slam
-docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml up -d   # remote + slam
+```bash
+cd docker/real
+docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml up -d
 
-1. Connecting from external machine
-After starting husarnet compose on Pi:
-On external machine (laptop):
-bash# Set ROS environment
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+# To bring it down
+docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml down -d
+```
+
+### Connecting from external machine
+Make sure you have `docker` and `docker-compose`/`docker compoes` installed on remote machine.
+
+#### build & run remote connection container
+```bash
+cd ~/ros2_ws/src
+
+docker build \
+  -f docker/real/Dockerfile.remote \
+  -t tesarect-cp22:fastbot-ros2-remote .
+
+# Run
+cd ~/ros2_ws/src/docker/real
+docker compose -f docker-compose.remote.yaml up -d
+
+# To bring it down
+docker compose -f docker-compose.remote.yaml down -d
+```
+##### Check for connection establishment
+Check for topics availability on 
+###### 1. Remote Container
+```bash
+docker exec -it fastbot-remote bash -c "source /opt/ros/humble/setup.bash && 
+  ros2 topic list"
+```
+
+###### 2. Remote host
+This step needs ros2 installed on your local machine(remote w.r.t fastbot)
+if so check for `ROS_DOMAIN_ID`. Our container are set to `0`, if your local is different, set it to `0`. Then you shoudl see fastbots topic.
+```bash
+ros2 topic list
+```
+If not visible, copy the `cyclonedds-husarnet.xml` from `docker/real/condif` and place it in you home path, then export the following env variables.
+> [!NOTE]: your device need to be added to husarnet dashboard for this step.
+
+```bash
+# Set ROS environment
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp  # Installation required
 export ROS_DOMAIN_ID=0
 export CYCLONEDDS_URI=file:///home/rosman/cyclonedds-husarnet.xml
 
@@ -271,21 +318,69 @@ ros2 topic list
 
 # Run RViz
 rviz2
+```
 
-The laptop needs ROS2 Humble installed. The cyclonedds-husarnet.xml on the laptop should have the correct peer hostnames matching what Husarnet assigned.
-
-2. Topics visible on Pi host with Husarnet config
-Yes — but with one condition. The Pi host needs to use the same DDS config as the containers:
-bash# On Pi host — match the container's DDS config
+#### Topics visible on fastbot host(Pi) with Husarnet config
+If you want to connect to fastbot locally or as a host while remote connection is established, make sure you first export these env variables on the fastbot(Pi) as host.
+```bash
+# On Pi host — match the container's DDS config
 export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_DOMAIN_ID=0
 
 ros2 topic list
 
+ros2 daemon stop #(optional if topics still not visible, then procede with topic listing)
+```
 Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
-Summary:
-ScenarioContainer configHost needsLocalno CYCLONEDDS_URInothing (default multicast)Husarnetcyclonedds-husarnet.xmlsame XML exported
+
 So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
 
 
+Check topics directly on the container
+```bash
+docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
+  source /ros2_ws/install/setup.bash && 
+  ros2 topic list"
+```
+
+## Usefull commands
+
+### logs
+To view logs of individual containers
+```bash
+docker ps
+# Then
+docker logs <container>
+docker logs -f <container>
+docker logs --tail 100 <container>
+docker logs --since 1h <container>
+```
+To view the whole compose's logs
+> [!NOTE]: For docker compose you need to be in the path where the compose files reside
+```bash
+docker-compose ps
+# Then
+docker-compose logs
+docker-compose logs -f
+docker-compose logs --tail=100
+docker-compose logs <service>
+docker-compose logs -f <service>
+```
+
+### For Remote ip6 inspection
+```bash
+$ cat /etc/hosts | grep managed
+fc94:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx fastbot # managed by Husarnet
+fc94:yyyy:yyyy:yyyy:yyyy:yyyy:yyyy:yyyy husarnet-local # managed by Husarnet
+fc94:yyyy:yyyy:yyyy:yyyy:yyyy:yyyy:yyyy remote/remote container # managed by Husarnet
+
+$ husarnet status
+# or
+$ nmcli device status
+DEVICE   TYPE      STATE                   CONNECTION         
+eno1     ethernet  connected               Wired connection 1 
+hnet0    tun       connected (externally)  hnet0              
+docker0  bridge    connected (externally)  docker0            
+lo       loopback  unmanaged  
+```
