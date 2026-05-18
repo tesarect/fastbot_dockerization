@@ -7,7 +7,7 @@
 
 
     <!-- Link fastbot_chassis -->
-    <link name="fastbot_base_link">
+    <link name="base_link">
         <inertial>
             <origin xyz="1.61253e-05 0.000669263 0.059916" rpy="0 0 0"/>
             <mass value="0.24695"/>
@@ -33,7 +33,7 @@
         </collision>
     </link>
     <!-- Link motor -->
-    <link name="fastbot_motor_1">
+    <link name="motor">
         <inertial>
             <origin xyz="0.0067446 0.0085 -0.00855065" rpy="0 0 0"/>
             <mass value="0.0339689"/>
@@ -57,7 +57,7 @@
         </collision>
     </link>
     <!-- Link wheel_right -->
-    <link name="fastbot_wheel_right">
+    <link name="wheel_right">
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="1e-09"/>
@@ -99,21 +99,21 @@
     <!-- Joint from motor to wheel_right -->
     <joint name="right_wheel" type="continuous">
         <origin xyz="-0.02 0.0085 -0.0191" rpy="4.35106e-30 2.46519e-32 3.14159"/>
-        <parent link="fastbot_motor_1"/>
-        <child link="fastbot_wheel_right"/>
+        <parent link="motor"/>
+        <child link="wheel_right"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
     <!-- Joint from base_link to motor -->
     <joint name="right_motor" type="fixed">
         <origin xyz="-0.024 0.0236664 0.02275" rpy="-1.5708 -2.94692e-47 -1.5708"/>
-        <parent link="fastbot_base_link"/>
-        <child link="fastbot_motor_1"/>
+        <parent link="base_link"/>
+        <child link="motor"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
     <!-- Link motor_2 -->
-    <link name="fastbot_motor_2">
+    <link name="motor_2">
         <inertial>
             <origin xyz="0.0067446 -0.0085 -0.00855065" rpy="0 0 0"/>
             <mass value="0.0339689"/>
@@ -137,7 +137,7 @@
         </collision>
     </link>
     <!-- Link wheel_left -->
-    <link name="fastbot_wheel_left">
+    <link name="wheel_left">
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="1e-09"/>
@@ -179,16 +179,16 @@
     <!-- Joint from motor_2 to wheel_left -->
     <joint name="left_wheel" type="continuous">
         <origin xyz="-0.02 -0.0085 -0.0191" rpy="-1.2326e-32 -1.54074e-33 3.14159"/>
-        <parent link="fastbot_motor_2"/>
-        <child link="fastbot_wheel_left"/>
+        <parent link="motor_2"/>
+        <child link="wheel_left"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
     <!-- Joint from base_link to motor_2 -->
     <joint name="left_motor" type="fixed">
         <origin xyz="0.024 0.0236664 0.02275" rpy="1.5708 -2.96391e-30 -1.5708"/>
-        <parent link="fastbot_base_link"/>
-        <child link="fastbot_motor_2"/>
+        <parent link="base_link"/>
+        <child link="motor_2"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
@@ -219,13 +219,13 @@
     <!-- Joint from base_link to n10_v2 -->
     <joint name="lidar" type="fixed">
         <origin xyz="-0.014 -0.00983363 0.108" rpy="3.14159 1.13983e-46 -3.14159"/>
-        <parent link="fastbot_base_link"/>
+        <parent link="base_link"/>
         <child link="n10_v2"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
     <!-- Link camera -->
-    <link name="fastbot_camera">
+    <link name="camera">
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="1e-09"/>
@@ -249,10 +249,10 @@
         </collision>
     </link>
     <!-- Joint from base_link to camera -->
-    <joint name="fastbot_camera" type="fixed">
+    <joint name="camera" type="fixed">
         <origin xyz="0.0105 -0.0668336 0.09765" rpy="-1.5708 1.14468e-45 6.41848e-15"/>
-        <parent link="fastbot_base_link"/>
-        <child link="fastbot_camera"/>
+        <parent link="base_link"/>
+        <child link="camera"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>

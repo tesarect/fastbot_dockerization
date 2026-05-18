@@ -14,6 +14,9 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
 from serial_motor_msgs.msg import MotorVels, EncoderVals
 
+from rclpy.qos import QoSProfile, ReliabilityPolicy
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformBroadcaster
 
 class MotorDriver(Node):
     """ROS2 Node for controlling and monitoring a differential drive robot."""
@@ -57,6 +60,9 @@ class MotorDriver(Node):
         self.wheel_separation = self.get_parameter("wheel_separation").value
         self.wheel_radius = self.wheel_diameter / 2
 
+        # TF Broadcaster
+        self.tf_broadcaster = TransformBroadcaster(self)
+
         # ROS 2 publishers and subscribers
         # Reentrant callback group allows concurrent execution
         self.callback_group = ReentrantCallbackGroup()
@@ -70,7 +76,10 @@ class MotorDriver(Node):
         )
         self.motor_vels_pub_ = self.create_publisher(MotorVels, "motor_vels", 10)
         self.encoder_pub_ = self.create_publisher(EncoderVals, "encoder_vals", 10)
-        self.odom_pub_ = self.create_publisher(Odometry, "odom", 10)
+        # self.odom_pub_ = self.create_publisher(Odometry, "odom", 10)
+        # Over riding Qos to match cartographer
+        qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.odom_pub_ = self.create_publisher(Odometry, "odom", qos)
 
         # Timer callback to continuously publish odometry
         self.create_timer(0.1, self._timer_callback, callback_group=self.callback_group)
@@ -95,6 +104,7 @@ class MotorDriver(Node):
                 f"Connecting to port {self.serial_port} at {self.baud_rate}."
             )
             self.conn = serial.Serial(self.serial_port, self.baud_rate, timeout=1.0)
+            time.sleep(4)  # Wait for Arduino to finish resetting after DTR signal
             self._logger.info(f"Connected to {self.conn}")
         except serial.SerialException as e:
             self._logger.error(f"Failed to connect to {self.serial_port}: {e}")
@@ -226,7 +236,7 @@ class MotorDriver(Node):
             self.encoder_pub_.publish(enc_msg)
 
             # Publish odometry based on encoder readings
-            # self.publish_odometry()
+            self.publish_odometry()
 
     def publish_odometry(self) -> None:
         """Publish odometry data based on encoder readings."""
@@ -275,6 +285,17 @@ class MotorDriver(Node):
 
         # Publish message
         self.odom_pub_.publish(odom_msg)
+
+        # Broadcast TF transform
+        t = TransformStamped()
+        t.header.stamp = odom_msg.header.stamp
+        t.header.frame_id = self.args.robot_name_value + "_odom"
+        t.child_frame_id = self.args.robot_name_value + "_base_link"
+        t.transform.translation.x = self.x
+        t.transform.translation.y = self.y
+        t.transform.translation.z = 0.0
+        t.transform.rotation = odom_msg.pose.pose.orientation
+        self.tf_broadcaster.sendTransform(t)
 
     def euler_to_quaternion(
         self, roll: float, pitch: float, yaw: float
