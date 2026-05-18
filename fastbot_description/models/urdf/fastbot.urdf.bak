@@ -193,7 +193,7 @@
         <limit effort="10" velocity="10"/>
     </joint>
     <!-- Link n10_v2 -->
-    <link name="n10_v2">
+    <link name="fastbot_lidar">
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="1e-09"/>
@@ -220,7 +220,7 @@
     <joint name="lidar" type="fixed">
         <origin xyz="-0.014 -0.00983363 0.108" rpy="3.14159 1.13983e-46 -3.14159"/>
         <parent link="fastbot_base_link"/>
-        <child link="n10_v2"/>
+        <child link="fastbot_lidar"/>
         <axis xyz="0 0 1"/>
         <limit effort="10" velocity="10"/>
     </joint>
