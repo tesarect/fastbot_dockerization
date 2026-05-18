@@ -62,9 +62,9 @@ docker exec -it fastbot-ros2-slam bash -c \
 
 # Then after saving, switch to navigation:
 ```bash
-docker-compose -f docker-compose.yml down
+docker-compose -f docker-compose.yaml down
 SLAM_MODE=localization MAP_FILE=/maps/my_map.yaml \
-  docker-compose -f docker-compose.yml up
+  docker-compose -f docker-compose.yaml up
 ```
 
 # List files inside a named volume
@@ -122,7 +122,7 @@ $ docker volume inspect fastbot-maps
 TODO: whats the default map and list the available maps
 ## From Volume space
 ```bash
-docker-compose -f docker-compose.yml down
+docker-compose -f docker-compose.yaml down
 
 SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
   docker-compose up
@@ -132,7 +132,7 @@ SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
 SLAM_MODE=localization MAP_NAME=room_map docker-compose up
 # or
 SLAM_MODE=localization MAP_NAME=room_map \
-  docker-compose -f docker-compose.yml up
+  docker-compose -f docker-compose.yaml up
 ```
 
 # Set `initialpose`
@@ -147,79 +147,70 @@ ros2 topic pub --once /initialpose \
     orientation: {w: 1.0}}}}'"
 ```
 
-# Real Environment
-Join code for group tesarect-fastbot is:
-karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
+# Real Environment (Fastbot)
+These are the images thats supposed to be running mandatorly for bringing up the fastbot
+  - `fastbot-ros2-real`       (responsible for drivers lidar, serial motor and camera)
+  - `fastbot-ros2-slam-real`  (runs cartographer for mapping by default)
+  - `fastbot-remote`          (an optional image thats helps to connect to fastbot remotely)
 
-You can use it in Husarnet CLI like this:
-sudo husarnet join karthikn.balasubramanian@gmail.com/gErnkJZzEB3GRVyKczPz5f
+### Compose types:
+  - local
+    - robot -> `fastbot-ros2-real` (Default running service on fastbot during boot)
+      ```bash
+      docker-compose -f docker-compose.yaml up -d robot
+      ```
+    - robot + slam  -> `fastbot-ros2-real` + `fastbot-ros2-slam-real`
+      ```bash
+      docker-compose -f docker-compose.yaml up -d
+      ```
+  - remote (through husarnet)
+    - robot -> `fastbot-ros2-real`
+      ```bash
+      docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml up -d robot
+      ```
+    - robot + slam  -> `fastbot-ros2-real` + `fastbot-ros2-slam-real`
+      ```bash
+      docker-compose -f docker-compose.yaml -f docker-compose.husarnet.yaml up -d
+      ```
 
-Husarnet join code:
-fc94:47a0:bab5:a53b:480e:0ed2:ae6c:fa61
 
+
+
+## Local Connection
+Make sure the `real` and `slam-real` are up and running.
+
+### Visualize from fastbot / host(Pi)
+> [NOTE] : This preperation works for both local and remote(husarnet) setup
+The running container `real` and `slam-real` are base images without gui. So you will be forced to use local host(Pi/fastbot) to visualize. This same configuraiton is also used to connect to fastbot locally or as a host while remote connection is established, so make sure you first export these env variables on the fastbot(Pi) as host.
+#### from host
+No additional changes neede. fastbot rose nodes are visible directly on the host
+#### for remote
 ```bash
-$ ros2 topic list
-/parameter_events
-/rosout
-fastbot@fastbot:~/ros2_ws/src/docker/real$ docker-compose up -d
-Creating fastbot-ros2-real ... done
-Creating fastbot-ros2-slam-real ... done
-fastbot@fastbot:~/ros2_ws/src/docker/real$ ros2 topic list
-/clock
-/constraint_list
-/diagnostics
-/fastbot/camera_info
-/fastbot/cmd_vel
-/fastbot/encoder_vals
-/fastbot/image_raw
-/fastbot/image_raw/compressed
-/fastbot/image_raw/compressedDepth
-/fastbot/image_raw/theora
-/fastbot/joint_states
-/fastbot/motor_vels
-/fastbot/odom
-/fastbot/scan
-/fastbot_robot_description
-/landmark_poses_list
-/lslidar_driver_node/transition_event
-/lslidar_order
-/map
-/parameter_events
-/rosout
-/scan_matched_points2
-/submap_list
-/tf
-/tf_static
-/trajectory_node_list
-fastbot@fastbot:~/ros2_ws/src/docker/real$ docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.sh && source /ros2_ws/install/setup.sh && ros2 topic list"
-/clock
-/constraint_list
-/diagnostics
-/fastbot/camera_info
-/fastbot/cmd_vel
-/fastbot/encoder_vals
-/fastbot/image_raw
-/fastbot/image_raw/compressed
-/fastbot/image_raw/compressedDepth
-/fastbot/image_raw/theora
-/fastbot/joint_states
-/fastbot/motor_vels
-/fastbot/odom
-/fastbot/scan
-/fastbot_robot_description
-/landmark_poses_list
-/lslidar_driver_node/transition_event
-/lslidar_order
-/map
-/parameter_events
-/rosout
-/scan_matched_points2
-/submap_list
-/tf
-/tf_static
-/trajectory_node_list
+# On Pi host — match the container's DDS config
+export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export ROS_DOMAIN_ID=0
+
+ros2 topic list
+
+ros2 daemon stop #(optional if topics still not visible, then procede with topic listing)
 ```
-# Real (Fastbot)
+Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
+
+So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
+
+
+Check topics directly on the container
+```bash
+docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
+  source /ros2_ws/install/setup.bash && 
+  ros2 topic list"
+```
+Check topics on host
+```bash
+ros2 topic list
+```
+
 
 ## Remote Connection
 ### pre-req
@@ -298,31 +289,37 @@ ros2 topic list
 rviz2
 ```
 
-#### Topics visible on fastbot host(Pi) with Husarnet config
-If you want to connect to fastbot locally or as a host while remote connection is established, make sure you first export these env variables on the fastbot(Pi) as host.
+
+## Map Generation
+### On Simulation
+Make sure `gazebo` and `slam` container are running on the Fastbot.
+### On Fastbot
+#### Through host
+The `real` and `slam-real` image are not full desktop or gui based. 
+Instead you can run `rviz2` on the fastbot(host) directly while `real` and `slam-real` are running. Look at the section visualize through host, [follow this](#visualize-from-fastbot--hostpi). Once you can see the topics of fastbot, you can directly fire up `rviz2` on the host (if installed) to visualize.
+
 ```bash
-# On Pi host — match the container's DDS config
-export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export ROS_DOMAIN_ID=0
+# bring up rviz saved config from the repo
+rviz2 -d ~/ros2_ws/src/fastbot_slam/rviz/default.rviz 
 
-ros2 topic list
-
-ros2 daemon stop #(optional if topics still not visible, then procede with topic listing)
-```
-Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
-
-So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
-
-
-Check topics directly on the container
-```bash
-docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
-  source /ros2_ws/install/setup.bash && 
-  ros2 topic list"
+docker exec -it fastbot-ros2-slam-real bash -c \
+  "source /ros2_ws/install/setup.bash && \
+  ros2 run teleop_twist_keyboard teleop_twist_keyboard \
+  --ros-args --remap cmd_vel:=fastbot/cmd_vel"
 ```
 
-## Usefull commands
+#### Through Remote
+And make sure `remote` container is running on the remote machine.
+Check if topics are visible and fire up rviz.
+```bash
+# Inside remote container
+docker exec -it fastbot-remote bash -c \
+  "source /opt/ros/humble/setup.bash && \
+   source /ros2_ws/install/setup.bash 2>/dev/null || true && \
+   rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz"
+```
+
+## Help yourself
 
 ### logs
 To view logs of individual containers
@@ -361,4 +358,42 @@ eno1     ethernet  connected               Wired connection 1
 hnet0    tun       connected (externally)  hnet0              
 docker0  bridge    connected (externally)  docker0            
 lo       loopback  unmanaged  
+```
+
+### Expected topics when fastbot container not running
+```bash
+$ ros2 topic list
+/parameter_events
+/rosout
+```
+
+### Expected topics when fastbot container up and running
+```bash
+$ ros2 topic list
+/clock
+/constraint_list
+/diagnostics
+/fastbot/camera_info
+/fastbot/cmd_vel
+/fastbot/encoder_vals
+/fastbot/image_raw
+/fastbot/image_raw/compressed
+/fastbot/image_raw/compressedDepth
+/fastbot/image_raw/theora
+/fastbot/joint_states
+/fastbot/motor_vels
+/fastbot/odom
+/fastbot/scan
+/fastbot_robot_description
+/landmark_poses_list
+/lslidar_driver_node/transition_event
+/lslidar_order
+/map
+/parameter_events
+/rosout
+/scan_matched_points2
+/submap_list
+/tf
+/tf_static
+/trajectory_node_list
 ```

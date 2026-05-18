@@ -1,16 +1,10 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-
-    use_sim_time = LaunchConfiguration('use_sim_time')
-    cmd_vel_topic = LaunchConfiguration('cmd_vel_topic')
-    odom_topic = LaunchConfiguration('odom_topic')
 
     controller_yaml = os.path.join(get_package_share_directory(
         'fastbot_slam'), 'config', 'controller.yaml')
@@ -22,34 +16,14 @@ def generate_launch_description():
         'fastbot_slam'), 'config', 'recovery.yaml')
 
     return LaunchDescription([
-
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='True',
-            description='Use simulation time — set False for real robot'
-        ),
-
-        DeclareLaunchArgument(
-            'cmd_vel_topic',
-            default_value='/fastbot/cmd_vel',
-            description='cmd_vel topic. Simulation: /fastbot/cmd_vel  Real: /fastbot/cmd_vel'
-        ),
-
-        DeclareLaunchArgument(
-            'odom_topic',
-            default_value='/fastbot/odom',
-            description='Odometry topic. Simulation: /fastbot/odom  Real robot: /odom'
-        ),
-
         Node(
             package='nav2_controller',
             executable='controller_server',
             name='controller_server',
             output='screen',
-            parameters=[controller_yaml,
-                        {'use_sim_time': use_sim_time}],
-            remappings=[('/cmd_vel', cmd_vel_topic),
-                        ('/odom', odom_topic)]
+            parameters=[controller_yaml],
+            remappings=[('/cmd_vel', '/fastbot/cmd_vel'),
+                        ('/odom', '/fastbot/odom')]
         ),
 
         Node(
@@ -57,19 +31,16 @@ def generate_launch_description():
             executable='planner_server',
             name='planner_server',
             output='screen',
-            parameters=[planner_yaml,
-                        {'use_sim_time': use_sim_time}]
-        ),
+            parameters=[planner_yaml]),
 
         Node(
             package='nav2_behaviors',
             executable='behavior_server',
             name='recoveries_server',
-            parameters=[recovery_yaml,
-                        {'use_sim_time': use_sim_time}],
+            parameters=[recovery_yaml],
             output='screen',
-            remappings=[('/cmd_vel', cmd_vel_topic),
-                        ('/odom', odom_topic)]
+            remappings=[('/cmd_vel', '/fastbot/cmd_vel'),
+                        ('/odom', '/fastbot/odom')]
         ),
 
         Node(
@@ -77,9 +48,7 @@ def generate_launch_description():
             executable='bt_navigator',
             name='bt_navigator',
             output='screen',
-            parameters=[bt_navigator_yaml,
-                        {'use_sim_time': use_sim_time}]
-        ),
+            parameters=[bt_navigator_yaml]),
 
         Node(
             package='nav2_lifecycle_manager',
@@ -87,7 +56,6 @@ def generate_launch_description():
             name='lifecycle_manager_pathplanner',
             output='screen',
             parameters=[{'autostart': True},
-                        {'use_sim_time': use_sim_time},
                         {'node_names': ['planner_server',
                                         'controller_server',
                                         'recoveries_server',
