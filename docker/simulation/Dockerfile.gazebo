@@ -63,7 +63,7 @@ RUN mkdir -p /root/.gazebo/models && \
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
     && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
 
-COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+COPY docker/simulation/scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 9090

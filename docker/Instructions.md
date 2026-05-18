@@ -5,53 +5,72 @@ Images for simulation
   - fastbot-ros2-slam
   - fastbot-ros2-webapp
 
-# 2. Start containers
+## Build or Pull images
+There is a build helper script to build all the images
+```bash
+cd ~/ros2_ws/src/fastbot_ros2_docker/docker
+
+# build helper
+./sim_build.sh
+# or build manually
+docker build simulation/ [TODO: fill the commands]
+```
+To pull the images from dockerhub
+```bash
+
+```
+
+## Start containers
+```bash
 cd ~/ros2_ws/src/fastbot_ros2_docker/simulation
-docker-compose -f docker-compose.yaml up
 
-# 3. On host — verify topics visible
-source ~/ros2_ws/install/setup.bash
-ros2 topic list
-# should show /fastbot/scan, /fastbot/odom, /map etc.
+# starts all 3 containers
+docker-compose -f docker-compose.yaml up -d
 
-# 4.1 Run RViz on host to visualize map
-rviz2 -d ~/ros2_ws/src/fastbot/fastbot_slam/rviz/nav.rviz
-rviz2 -d ~/ros2_ws/src/fastbot_description/rviz/fastbot.rviz
+# start individual container
+docker-compose -f docker-compose.yaml up -d gazebo
+```
 
-# 4.2 Run RViz on docker to visualize map
+## Visualize 
+#### Through Container
+```bash
 docker exec -it fastbot-ros2-gazebo bash -c \
 "source install/setup.bash && \
 rviz2 -d src/fastbot_description/rviz/fastbot.rviz"
+```
 
-# 5. Misl commands
-### Topics echo/info
-  docker exec -it fastbot-ros2-slam bash -c \
-  "source /ros2_ws/install/setup.bash && ros2 topic echo /map --once"
+#### Through Host
+```bash
+rviz2 -d ~/ros2_ws/src/fastbot/fastbot_slam/rviz/nav.rviz
+rviz2 -d ~/ros2_ws/src/fastbot_description/rviz/fastbot.rviz
+```
 
-### Topics list
-  docker exec -it fastbot-ros2-slam bash -c \
+## View Topics 
+#### Through Container
+```bash
+docker exec -it fastbot-ros2-slam bash -c \
   "source /ros2_ws/install/setup.bash && ros2 topic list"
+```
+#### Through Host
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 topic list
+```
 
-### Teleop
-  docker exec -it fastbot-ros2-slam bash -c \
+## Maps
+By default cartographer node will be running.
+### Create a new map
+Keep the `gazebo` and `slam` running along with `rviz`, move the robot around the space either through teleop or throug webinterface.
+```bash
+# Teleop
+docker exec -it fastbot-ros2-slam bash -c \
   "source /ros2_ws/install/setup.bash && \
   ros2 run teleop_twist_keyboard teleop_twist_keyboard \
   --ros-args --remap cmd_vel:=fastbot/cmd_vel"
-
-save a map:
-# In a new terminal — exec into slam container
-# Save map to the volume mount point
-```bash
-docker exec -it fastbot-ros2-slam bash
 ```
-inside container:
+Once the area is covered save the map  to a volume mount point using
 ```bash
-ros2 run nav2_map_server map_saver_cli \
-  -f /maps/my_map \
-  --ros-args -p save_map_timeout:=5.0
-```
-or
-```bash
+# Save map to Volume
 docker exec -it fastbot-ros2-slam bash -c \
 "source /opt/ros/humble/setup.bash &&
  source /ros2_ws/install/setup.bash &&
@@ -59,75 +78,33 @@ docker exec -it fastbot-ros2-slam bash -c \
   -f /maps/my_map1 \
   --ros-args -p save_map_timeout:=5.0"
 ```
-
-# Then after saving, switch to navigation:
-```bash
-docker-compose -f docker-compose.yaml down
-SLAM_MODE=localization MAP_FILE=/maps/my_map.yaml \
-  docker-compose -f docker-compose.yaml up
-```
-
-# List files inside a named volume
-# Check what's in the fastbot-maps volume
-```bash
-docker run --rm \
-  -v fastbot-maps:/maps \
-  alpine ls -la /maps
-```
-or
+or, enter into the container
 ```bash
 docker exec -it fastbot-ros2-slam bash
-ls -la /maps/
 ```
-or
+then save the map to a volume mount point
 ```bash
-docker exec -it fastbot-ros2-slam bash -c \
-"ls -la /maps/"
-```
-expected output:
-```bash
-total 56
-drwxr-xr-x    2 root     root          4096 May 11 05:27 .
-drwxr-xr-x    1 root     root          4096 May 11 05:29 ..
--rw-r--r--    1 root     root         17488 May 11 05:25 my_map.pgm
--rw-r--r--    1 root     root           124 May 11 05:25 my_map.yaml
--rw-r--r--    1 root     root         17488 May 11 05:27 my_map1.pgm
--rw-r--r--    1 root     root           125 May 11 05:27 my_map1.yaml
-```
-# To explicitly remove volume
-```bash
-docker volume rm fastbot-maps
-```
-# Inspect Volume
-```bash
-$ docker volume inspect fastbot-maps
-[
-    {
-        "CreatedAt": "2026-05-11T05:09:29Z",
-        "Driver": "local",
-        "Labels": {
-            "com.docker.compose.project": "simulation",
-            "com.docker.compose.version": "1.25.0",
-            "com.docker.compose.volume": "fastbot-maps"
-        },
-        "Mountpoint": "/var/lib/docker/volumes/fastbot-maps/_data",
-        "Name": "fastbot-maps",
-        "Options": null,
-        "Scope": "local"
-    }
-]
+ros2 run nav2_map_server map_saver_cli \
+  -f /maps/my_map \
+  --ros-args -p save_map_timeout:=5.0
 ```
 
-# Load saved maps
-TODO: whats the default map and list the available maps
-## From Volume space
+### Load Maps / Switching to Navigation
+If you are still running the cartographer node, please bring it down
 ```bash
+docker ps
+cd ~/ros2_ws/src/fastbot_ros2_docker/docker/simulation
+docker-compose ps
+# Then bring down respective container
 docker-compose -f docker-compose.yaml down
-
+```
+#### From Volume
+Please visit [help yourself](#list-files-inside-a-named-volumelist-user-saved-maps) if you need help in inspecting or list maps under volume space
+```bash
 SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
   docker-compose up
 ```
-## From images existing space
+#### From Pre-existing (available inside container)
 ```bash
 SLAM_MODE=localization MAP_NAME=room_map docker-compose up
 # or
@@ -135,7 +112,8 @@ SLAM_MODE=localization MAP_NAME=room_map \
   docker-compose -f docker-compose.yaml up
 ```
 
-# Set `initialpose`
+
+### Set `initialpose`
 > [!IMPORTANT:] Default maps will run with inital pose automaticaly if defined under `/ros2_ws/map_poses.yaml`(inside fastbot-ros2-slam image).If its not defined, please do the `2D pose estimate` from rviz.
 ```
 docker exec -it fastbot-ros2-slam bash -c \
@@ -341,6 +319,55 @@ docker-compose logs -f
 docker-compose logs --tail=100
 docker-compose logs <service>
 docker-compose logs -f <service>
+```
+### List files inside a named volume(List user saved maps)
+```bash
+docker run --rm \
+  -v fastbot-maps:/maps \
+  alpine ls -la /maps
+```
+or
+```bash
+docker exec -it fastbot-ros2-slam bash
+ls -la /maps/
+```
+or
+```bash
+docker exec -it fastbot-ros2-slam bash -c \
+"ls -la /maps/"
+```
+expected output:
+```bash
+total 56
+drwxr-xr-x    2 root     root          4096 May 11 05:27 .
+drwxr-xr-x    1 root     root          4096 May 11 05:29 ..
+-rw-r--r--    1 root     root         17488 May 11 05:25 my_map.pgm
+-rw-r--r--    1 root     root           124 May 11 05:25 my_map.yaml
+-rw-r--r--    1 root     root         17488 May 11 05:27 my_map1.pgm
+-rw-r--r--    1 root     root           125 May 11 05:27 my_map1.yaml
+```
+#### To explicitly remove volume
+```bash
+docker volume rm fastbot-maps
+```
+#### Inspect Volume
+```bash
+$ docker volume inspect fastbot-maps
+[
+    {
+        "CreatedAt": "2026-05-11T05:09:29Z",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.project": "simulation",
+            "com.docker.compose.version": "1.25.0",
+            "com.docker.compose.volume": "fastbot-maps"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/fastbot-maps/_data",
+        "Name": "fastbot-maps",
+        "Options": null,
+        "Scope": "local"
+    }
+]
 ```
 
 ### For Remote ip6 inspection
