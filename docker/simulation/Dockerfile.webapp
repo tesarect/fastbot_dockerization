@@ -62,7 +62,9 @@ COPY docker/simulation/config/nginx_webapp.conf /etc/nginx/sites-available/defau
 # Build workspace at image build time
 WORKDIR /ros2_ws
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash \
-    && rosdep install --from-paths src --ignore-src -r -y \
+    && apt-get update \
+    && rosdep install --from-paths src --ignore-src -r -y --skip-keys python3-pyquaternion \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && colcon build --symlink-install"
 
 # Source workspace for interactive shells
@@ -75,7 +77,7 @@ RUN chmod +x /entrypoint.sh
 COPY docker/simulation/scripts/start_web_service.sh /ros2_ws/start_web_service.sh
 RUN chmod +x /ros2_ws/start_web_service.sh
 
-EXPOSE 9090 11315 8000
+EXPOSE 9090 11315 7000
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/ros2_ws/start_web_service.sh"]
