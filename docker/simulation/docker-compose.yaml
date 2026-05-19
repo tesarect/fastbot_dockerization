@@ -60,18 +60,23 @@ services:
     tty: true
     command: /ros2_ws/start_slam.sh
 
-  # webapp:
-  #   image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-webapp
-  #   container_name: fastbot-ros2-webapp
-  #   network_mode: host
-  #   environment:
-  #     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-  #     - ROS_DOMAIN_ID=0
-  #   depends_on:
-  #     - slam
-  #   stdin_open: true
-  #   tty: true
-  #   command: /ros2_ws/start_web_services.sh
+  webapp:
+    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-webapp
+    container_name: fastbot-ros2-webapp
+    networks:
+      - ros2_network
+    ports:
+      - "8000:8000"    # web panel  → http://localhost:8000
+      - "9090:9090"    # rosbridge  → ws://localhost:9090
+      - "11315:11315"  # camera     → http://localhost:11315
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+    depends_on:
+      - slam
+    stdin_open: true
+    tty: true
+    command: /ros2_ws/start_web_service.sh
 
 networks:
   ros2_network:

@@ -29,9 +29,9 @@ ros2 run tf2_web_republisher_py tf2_web_republisher &
 
 sleep 1
 
-# 4. Web App HTTP Server (port 8000) — serves the control panel UI
-echo "[4/4] Starting Web App HTTP server on port 8000..."
-cd /ros2_ws/src/fastbot_webapp && python3 -m http.server 8000 --bind 0.0.0.0 &
+# 4. Nginx (port 8000) — serves the control panel UI
+echo "[4/4] Starting nginx on port 8000..."
+nginx -g "daemon off;" &
 
 echo ""
 echo "=============================================="
