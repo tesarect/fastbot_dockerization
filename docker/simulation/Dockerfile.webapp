@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-numpy \
     curl \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # pyquaternion needed by tf2_web_republisher
@@ -50,16 +51,13 @@ ENV ROS_DOMAIN_ID=0
 
 # Copy packages from project root into image
 RUN mkdir -p /ros2_ws/src
-COPY tf2_web_republisher_py /ros2_ws/src/tf2_web_republisher_py
+COPY tf2_web_republisher_py           /ros2_ws/src/tf2_web_republisher_py
+COPY fastbot_description              /ros2_ws/src/fastbot_description
+COPY fastbot_webapp                   /ros2_ws/src/fastbot_webapp
+# Remove embedded fastbot_description — prevents colcon duplicate-package conflict
+RUN rm -rf /ros2_ws/src/fastbot_webapp/fastbot_description
 
-# ── fastbot_webapp integration ───────────────────────────────────────────────
-# Option A: Copy local folder (uncomment once webapp is ready)
-# COPY fastbot_webapp /ros2_ws/src/fastbot_webapp
-#
-# Option B: Clone from git (uncomment and set correct repo URL)
-# RUN git clone https://github.com/<your_username>/fastbot_webapp.git \
-#         /ros2_ws/src/fastbot_webapp
-# ─────────────────────────────────────────────────────────────────────────────
+COPY docker/simulation/config/nginx_webapp.conf /etc/nginx/sites-available/default
 
 # Build workspace at image build time
 WORKDIR /ros2_ws
@@ -71,13 +69,13 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash \
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
     && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
 
-COPY simulation/scripts/entrypoint.sh /entrypoint.sh
+COPY docker/simulation/scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-COPY simulation/scripts/start_web_services.sh /ros2_ws/start_web_services.sh
-RUN chmod +x /ros2_ws/start_web_services.sh
+COPY docker/simulation/scripts/start_web_service.sh /ros2_ws/start_web_service.sh
+RUN chmod +x /ros2_ws/start_web_service.sh
 
 EXPOSE 9090 11315 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/ros2_ws/start_web_services.sh"]
+CMD ["/ros2_ws/start_web_service.sh"]
