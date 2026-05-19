@@ -50,7 +50,3 @@ RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["ros2", "launch", "fastbot_slam", "cartographer.launch.py", "use_sim_time:=False"]
-# CMD ["ros2", "launch", "fastbot_slam", "cartographer.launch.py", \
-#      "use_sim_time:=False", \
-#      "configuration_basename:=cartographer_real.lua", \
-#      "odom_topic:=/odom"]
