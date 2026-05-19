@@ -6,8 +6,8 @@
 
 const telemetry = (() => {
 
-  const ODOM_TOPIC = '/fastbot_1/odom';
-  const CMDVEL_TOPIC  = '/fastbot_1/cmd_vel';  // actual velocity after smoother
+  const ODOM_TOPIC = '/fastbot/odom';
+  const CMDVEL_TOPIC  = '/fastbot/cmd_vel';
 
   let odomSub   = null;
   let cmdvelSub = null;

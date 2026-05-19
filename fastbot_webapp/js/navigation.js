@@ -38,14 +38,14 @@ const navigation = (() => {
 
     cmdVelTopic = new ROSLIB.Topic({
       ros,
-      name:        '/fastbot_1/cmd_vel',
+      name:        '/fastbot/cmd_vel',
       messageType: 'geometry_msgs/Twist'
     });
 
     // Track robot position for cancel
     const odomSub = new ROSLIB.Topic({
       ros,
-      name:        '/fastbot_1/odom',
+      name:        '/fastbot/odom',
       messageType: 'nav_msgs/Odometry',
       throttle_rate: 500,
       queue_length: 1

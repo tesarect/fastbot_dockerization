@@ -5,13 +5,33 @@ Images for simulation
   - fastbot-ros2-slam
   - fastbot-ros2-webapp
 
+### Pre Req
+#### On TheConstruct
+The Construct Rosject container looses changes related to user installation. So to prepare the Rosject for this checkpoint please run `setup_construct.sh` at initially to install and add docker to groups
+```bash
+cd ~/ros2_ws/src/fastbot_ros2_docker/docker
+./setup_construct.sh
+
+# source bashrc
+srcrc   # alias for bashrc sourcing
+# or
+source ~/.bashrc
+```
+#### On Local Machine
+Make sure docker and docker compose is installed and remember to load the terminal to get access to your screen before you are going to load any GUI 
+```bash
+xhost +local:docker
+```
+
 ## Build or Pull images
 There is a build helper script to build all the images
 ```bash
 cd ~/ros2_ws/src/fastbot_ros2_docker/docker
 
 # build helper
-./sim_build.sh
+./sim_build.sh                              # on TheConstruct
+DOCKERHUB_USER=tesarect ./sim_build.sh web  # on your Local
+
 # or build manually
 docker build simulation/ [TODO: fill the commands]
 ```
@@ -25,7 +45,8 @@ To pull the images from dockerhub
 cd ~/ros2_ws/src/fastbot_ros2_docker/simulation
 
 # starts all 3 containers
-docker-compose -f docker-compose.yaml up -d
+docker-compose -f docker-compose.yaml up -d            # on TheConstruct
+DOCKERHUB_USER=tesarect docker-compose -f docker-compose.yaml docker-compose.rosnet.yaml up -d   # on your local
 
 # start individual container
 docker-compose -f docker-compose.yaml up -d gazebo
@@ -33,6 +54,7 @@ docker-compose -f docker-compose.yaml up -d gazebo
 
 ## Visualize 
 #### Through Container
+works on both local and from TheConstruct
 ```bash
 docker exec -it fastbot-ros2-gazebo bash -c \
 "source install/setup.bash && \
@@ -75,7 +97,7 @@ docker exec -it fastbot-ros2-slam bash -c \
 "source /opt/ros/humble/setup.bash &&
  source /ros2_ws/install/setup.bash &&
  ros2 run nav2_map_server map_saver_cli \
-  -f /maps/my_map1 \
+  -f /maps/my_map \
   --ros-args -p save_map_timeout:=5.0"
 ```
 or, enter into the container
@@ -89,20 +111,50 @@ ros2 run nav2_map_server map_saver_cli \
   --ros-args -p save_map_timeout:=5.0
 ```
 
+#### Expected Output:
+```bash
+[INFO] [1779192793.949779236] [map_saver]: 
+        map_saver lifecycle node launched. 
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1779192793.953486223] [map_saver]: Creating
+[INFO] [1779192793.953920168] [map_saver]: Configuring
+[INFO] [1779192793.957831739] [map_saver]: Saving map from 'map' topic to '/maps/my_map' file
+[WARN] [1779192793.957877575] [map_saver]: Free threshold unspecified. Setting it to default value: 0.250000
+[WARN] [1779192793.957911098] [map_saver]: Occupied threshold unspecified. Setting it to default value: 0.650000
+[WARN] [1779192793.977517225] [map_io]: Image format unspecified. Setting it to: pgm
+[INFO] [1779192793.979262676] [map_io]: Received a 173 X 100 map @ 0.05 m/pix
+[INFO] [1779192794.037879078] [map_io]: Writing map occupancy data to /maps/my_map.pgm
+[INFO] [1779192794.039483323] [map_io]: Writing map metadata to /maps/my_map.yaml
+[INFO] [1779192794.039817291] [map_io]: Map saved
+[INFO] [1779192794.039859370] [map_saver]: Map saved successfully
+[INFO] [1779192794.041406207] [map_saver]: Destroying
+```
+
 ### Load Maps / Switching to Navigation
 If you are still running the cartographer node, please bring it down
 ```bash
 docker ps
+
 cd ~/ros2_ws/src/fastbot_ros2_docker/docker/simulation
+
 docker-compose ps
+
 # Then bring down respective container
 docker-compose -f docker-compose.yaml down
 ```
 #### From Volume
 Please visit [help yourself](#list-files-inside-a-named-volumelist-user-saved-maps) if you need help in inspecting or list maps under volume space
 ```bash
+# Quick check to list maps under volume space
+docker exec -it fastbot-ros2-slam bash -c \
+"ls -la /maps/"
+
 SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
-  docker-compose up
+  docker-compose up -d
+
+DOCKERHUB_USER=tesarect SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
+  docker-compose up -d
 ```
 #### From Pre-existing (available inside container)
 ```bash
@@ -123,6 +175,11 @@ ros2 topic pub --once /initialpose \
   '{header: {frame_id: "map"}, 
     pose: {pose: {position: {x: 0.0, y: 0.0, z: 0.0}, 
     orientation: {w: 1.0}}}}'"
+```
+## Control through Webpage
+Make sure `fastbot-ros2-webapp` is running and get the address from the logs
+```bash
+docker logs fastbot-ros2-webapp
 ```
 
 # Real Environment (Fastbot)

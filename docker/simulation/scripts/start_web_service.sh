@@ -19,7 +19,8 @@ sleep 2
 # 2. Web Video Server (port 11315) — streams camera feed via MJPEG
 echo "[2/3] Starting Web Video Server on port 11315..."
 ros2 run web_video_server web_video_server \
-    --ros-args -p port:=11315 -p address:="0.0.0.0" &
+    --ros-args -p port:=11315 -p address:="0.0.0.0" \
+               -p default_stream_type:=mjpeg -p quality:=20 -p framerate:=25.0 &
 
 sleep 1
 
@@ -38,7 +39,7 @@ echo "=============================================="
 echo " All services started!"
 echo "  ROSBridge:        ws://localhost:9090"
 echo "  Web Video Server: http://localhost:11315"
-echo "  Web App:          http://localhost:8000"
+echo "  Web App:          http://localhost:7000"
 echo "=============================================="
 
 wait

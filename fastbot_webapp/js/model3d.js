@@ -15,9 +15,10 @@ const model3d = (() => {
 
 //   const FIXED_FRAME = 'fastbot_1_odom';
 //   const URDF_FIXED_FRAME = 'fastbot_1_base_link';
-  const URDF_FIXED_FRAME = 'fastbot_1_odom';
+  // Both model and map use 'map' so robot placement matches AMCL localization
+  const URDF_FIXED_FRAME = 'map';
   const MAP_FIXED_FRAME  = 'map';
-  const URDF_PARAM  = '/fastbot_1_robot_state_publisher:robot_description';
+  const URDF_PARAM  = '/fastbot_robot_state_publisher:robot_description';
 
   // ---------------------------------------------------------------------------
   // TF Tree — stores raw parent→child transforms from /tf and /tf_static,
@@ -243,7 +244,7 @@ const model3d = (() => {
 
   function startVisibilityPoller() {
     let checks = 0, lastCount = 0, stableChecks = 0;
-    const MIN_MESHES = 5, STABLE_NEED = 3;
+    const MIN_MESHES = 5, STABLE_NEED = 2;
     visPoller = setInterval(() => {
       if (!viewer) { clearInterval(visPoller); return; }
       checks++;
@@ -251,32 +252,28 @@ const model3d = (() => {
       viewer.scene.traverse((obj) => {
         if (obj.type !== 'Mesh') return;
         if (!obj.name || obj.name.length < 3 || obj.name.match(/^[0-9A-F]{8}$/i)) return;
-          named++;
+        named++;
         if (obj.visible) vis++;
       });
-      const elapsed = checks * 2;
+      const elapsed = checks;
       setLoadDetail(`Parsing meshes... ${elapsed}s (${vis}/${named})`);
       if (named === lastCount && named > 0) stableChecks++;
       else { stableChecks = 0; lastCount = named; }
-      if (named >= MIN_MESHES && stableChecks >= STABLE_NEED && vis === named) {
+      if (named >= MIN_MESHES && stableChecks >= STABLE_NEED) {
         clearInterval(visPoller); visPoller = null;
         hideLoadingOverlay();
         const b1 = document.getElementById("model-status");
         if (b1) { b1.textContent = "LIVE"; b1.classList.add("live"); }
         console.log(`[Model3D] ${named} meshes visible — overlay hidden`);
       }
-      if (named >= MIN_MESHES && stableChecks >= STABLE_NEED && elapsed >= 30) {
+      if (checks > 30) {
         clearInterval(visPoller); visPoller = null;
         hideLoadingOverlay();
         const b2 = document.getElementById("model-status");
         if (b2) { b2.textContent = "LIVE"; b2.classList.add("live"); }
         console.warn(`[Model3D] Timeout — ${vis}/${named} visible`);
       }
-      if (checks > 90) {
-        clearInterval(visPoller); visPoller = null;
-        hideLoadingOverlay();
-      }
-    }, 2000);
+    }, 1000);
   }
 
   // ---------------------------------------------------------------------------

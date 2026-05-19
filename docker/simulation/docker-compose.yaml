@@ -66,7 +66,7 @@ services:
     networks:
       - ros2_network
     ports:
-      - "8000:8000"    # web panel  → http://localhost:8000
+      - "7000:7000"    # web panel  → http://localhost:7000
       - "9090:9090"    # rosbridge  → ws://localhost:9090
       - "11315:11315"  # camera     → http://localhost:11315
     environment:

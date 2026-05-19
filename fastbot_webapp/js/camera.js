@@ -6,7 +6,7 @@
 
 const camera = (() => {
 
-  const TOPIC = '/fastbot_1/camera/image_raw';
+  const TOPIC = '/fastbot_camera/image_raw';
 
   function init(ros, rosbridgeUrl) {
     const container   = document.querySelector('#panel-camera .panel-body');
@@ -15,15 +15,24 @@ const camera = (() => {
 
     badge.textContent = 'CONNECTING';
 
-    // Derive host from the current page URL (not rosbridge URL)
-    // https://host/UUID/webpage/  →  host/UUID
-    const withoutScheme = location.href.replace(/^https?:\/\//, '');
-    const parts = withoutScheme.split('/').filter(Boolean);
-    // parts[0] = hostname, parts[1] = UUID, parts[2] = "webpage"
-    const host = parts[0] + '/' + parts[1];
+    // Local: use web_video_server directly on port 11315
+    // TheConstruct proxy: derive host/UUID from page URL
+    let host, port, ssl;
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      host = 'localhost';
+      port = 11315;
+      ssl  = false;
+    } else {
+      const withoutScheme = location.href.replace(/^https?:\/\//, '');
+      const parts = withoutScheme.split('/').filter(Boolean);
+      host = parts[0] + '/' + parts[1];
+      port = 0;
+      ssl  = true;
+    }
 
-    console.log('[Camera] MJPEG host:', host);
-    console.log('[Camera] Stream URL: https://' + host + '/stream?topic=' + TOPIC);
+    console.log('[Camera] MJPEG host:', host + ':' + port);
+    console.log('[Camera] Stream URL (new): http://' + host + ':' + port + '/stream?topic=' + TOPIC);
+    console.log('[Camera] Stream URL (old proxy format): https://' + host + '/stream?topic=' + TOPIC);
 
     // Create div for MJPEGCANVAS
     const divID    = 'mjpeg-camera';
@@ -38,8 +47,8 @@ const camera = (() => {
       width:  container.clientWidth  || 640,
       height: container.clientHeight || 480,
       topic:  TOPIC,
-      port:   0,
-      ssl:    true,
+      port:   port,
+      ssl:    ssl,
     });
 
     if (placeholder) placeholder.style.display = 'none';
