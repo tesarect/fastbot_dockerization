@@ -153,16 +153,11 @@ These are the images thats supposed to be running mandatorly for bringing up the
 
 
 
-
-## Local Connection
+## Connect to Fastbot Locally
+### From host (Pi)
 Make sure the `real` and `slam-real` are up and running.
-
-### Visualize from fastbot / host(Pi)
-> [NOTE] : This preperation works for both local and remote(husarnet) setup
-The running container `real` and `slam-real` are base images without gui. So you will be forced to use local host(Pi/fastbot) to visualize. This same configuraiton is also used to connect to fastbot locally or as a host while remote connection is established, so make sure you first export these env variables on the fastbot(Pi) as host.
-#### from host
-No additional changes neede. fastbot rose nodes are visible directly on the host
-#### for remote
+No additional changes needed. fastbot nodes are visible directly on the host.
+If its not visible set the env variables and try (follow the below steps)
 ```bash
 # On Pi host — match the container's DDS config
 export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
@@ -177,27 +172,35 @@ Without setting CYCLONEDDS_URI on the host, it uses default multicast while cont
 
 So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
 
+### From Container
+[TODO]
 
+### Visualize or View Topics
+#### from fastbot / host(Pi)
+> [NOTE] : This preperation works for both local and remote(husarnet) setup
+The running container `real` and `slam-real` are base images without gui. So you will be forced to use local host(Pi/fastbot) to visualize. This same configuraiton is also used to connect to fastbot locally or as a host while remote connection is established, so make sure you first export these env variables on the fastbot(Pi) as host.
+
+#### from Container
 Check topics directly on the container
 ```bash
 docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
   source /ros2_ws/install/setup.bash && 
   ros2 topic list"
 ```
-Check topics on host
+#### from host
 ```bash
 ros2 topic list
 ```
 
 
-## Remote Connection
+## Connect to Fastbot Remotely
 ### pre-req
 By default the fastbot will be running just the essential(camera, lidar and serial motor drivers). To establish a remote connection, bring the default running service down first
 
 ```bash
 sudo systemctl stop fastbot.service
 ```
-> [!WARNING]: To avoid stale containers its better to bring dontainer down completely. Because the `fastbot.service` just stops the container and does not downs the container completely, so that during shutdown, `<container> stop` is quicker that `<container> down`. So
+> [!WARNING]: To avoid stale containers its better to bring container down completely. Because the `fastbot.service` just `stop`'s the container and does not `down`'s the container completely, so that during shutdown, `<container> stop` is quicker that `<container> down`. Recomended to follow the below steps.
 ```bash
 cd docker/real # make sure you switch to docker files path
 # list out running containers
@@ -223,6 +226,7 @@ Make sure you have `docker` and `docker-compose`/`docker compoes` installed on r
 ```bash
 cd ~/ros2_ws/src
 
+# Build
 docker build \
   -f docker/real/Dockerfile.remote \
   -t tesarect-cp22:fastbot-ros2-remote .
@@ -268,11 +272,10 @@ rviz2
 ```
 
 
-## Map Generation
-### On Simulation
-Make sure `gazebo` and `slam` container are running on the Fastbot.
-### On Fastbot
-#### Through host
+### Maps
+#### Create a new Map
+Make sure `real` and `slam-real` container are running on the Fastbot.
+#### Through host / container on host
 The `real` and `slam-real` image are not full desktop or gui based. 
 Instead you can run `rviz2` on the fastbot(host) directly while `real` and `slam-real` are running. Look at the section visualize through host, [follow this](#visualize-from-fastbot--hostpi). Once you can see the topics of fastbot, you can directly fire up `rviz2` on the host (if installed) to visualize.
 
