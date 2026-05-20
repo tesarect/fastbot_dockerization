@@ -7,7 +7,8 @@
 #
 # Usage:
 #   chmod +x pi_setup.sh
-#   ./pi_setup.sh
+#   ./pi_setup.sh              # service runs as 'fastbot'
+#   ./pi_setup.sh <username>   # service runs as given user
 #
 # After running: REBOOT the Pi for all changes to take effect.
 # =============================================================================
@@ -25,10 +26,13 @@ success() { echo -e "${GREEN}[done] ${NC} $*"; }
 warn()    { echo -e "${YELLOW}[warn] ${NC} $*"; }
 error()   { echo -e "${RED}[error]${NC} $*"; exit 1; }
 
+ROBOT_USER="${1:-fastbot}"
+
 echo ""
 echo "=============================================="
 echo "  FastBot Raspberry Pi Host Setup"
 echo "  Run once before Docker setup"
+echo "  Service user: ${ROBOT_USER}"
 echo "=============================================="
 echo ""
 
@@ -152,6 +156,23 @@ if [ -n "$DOCKER_USER" ]; then
     success "DOCKERHUB_USER set to: ${DOCKER_USER}"
 fi
 
+# ── 11. Install fastbot systemd service ──────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SERVICE_SRC="${SCRIPT_DIR}/real/scripts/fastbot.service"
+
+log "Installing fastbot systemd service..."
+
+if [ ! -f "$SERVICE_SRC" ]; then
+    warn "fastbot.service not found at ${SERVICE_SRC} — skipping"
+else
+    sed "s|User=fastbot|User=${ROBOT_USER}|g; s|/home/fastbot|/home/${ROBOT_USER}|g" \
+        "$SERVICE_SRC" | sudo tee /etc/systemd/system/fastbot.service > /dev/null
+    sudo systemctl daemon-reload
+    sudo systemctl enable fastbot.service
+    sudo systemctl start fastbot.service
+    success "fastbot.service installed, enabled, and started"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "=============================================="
@@ -160,6 +181,7 @@ echo ""
 echo "  Created:"
 echo "    /etc/udev/rules.d/99-lslidar.rules"
 echo "    /etc/udev/rules.d/99-arduino.rules"
+echo "    /etc/systemd/system/fastbot.service"
 echo ""
 echo "  Configured:"
 echo "    /boot/firmware/config.txt (camera)"

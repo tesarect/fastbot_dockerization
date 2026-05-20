@@ -1,83 +1,109 @@
-# FastBot ROS2 Docker — Simulation
+# FastBot ROS2 — Docker Deployment
 
-## Project Structure
+A fully Dockerised ROS 2 Humble workspace for **FastBot**, a differential-drive robot equipped with an LSlidar N10 lidar, a Raspberry Pi camera, and an Arduino Nano motor controller.
+
+The same ROS packages are delivered as Docker images for two targets: a desktop simulation and a Raspberry Pi real robot, with optional remote access over a Husarnet VPN.
+
+---
+
+## What is achieved
+
+### Simulation (desktop / TheConstruct)
+Three images bring up a complete simulation pipeline on any x86 machine:
+
+| Image | Role |
+|---|---|
+| `fastbot-ros2-gazebo` | Gazebo simulation world + robot |
+| `fastbot-ros2-slam` | Cartographer mapping + Nav2 navigation |
+| `fastbot-ros2-webapp` | Web control panel (joystick, map view, camera) |
+
+- Mapping and navigation modes switchable via environment variables — no compose file edits needed.
+- Maps persist in a named Docker volume (`fastbot-maps`) and can be saved, loaded, or swapped at runtime.
+- Web interface accessible from TheConstruct's public URL or `localhost`.
+
+### Real Robot (Raspberry Pi — ARM64)
+Two images run the full robot stack on the Pi:
+
+| Image | Role |
+|---|---|
+| `fastbot-ros2-real` | Lidar driver, camera, serial motor controller |
+| `fastbot-ros2-slam-real` | Cartographer mapping (real sensor data) |
+
+- Pi host setup is automated by `docker/pi_setup.sh` (udev rules, Docker install, camera config, systemd service).
+- `fastbot.service` auto-starts the robot container on every boot; accepts a username argument for non-default Pi users.
+- Maps saved to a persistent volume (`fastbot-maps-real`).
+
+### Remote Access (PC → Pi over Husarnet)
+A third image runs on the remote laptop to bridge into the robot's DDS network:
+
+| Image | Role |
+|---|---|
+| `fastbot-ros2-remote` | RViz2 + ROSBridge + Web Video Server over Husarnet VPN |
+
+- RViz launches with the pre-loaded `default.rviz` config from `fastbot_slam`.
+- CycloneDDS is configured for Husarnet unicast — no multicast leakage.
+
+---
+
+## Repository layout
 
 ```
-fastbot_ros2_docker/          ← build context (always run docker build from here)
-├── simulation/
-│   ├── Dockerfile.gazebo     ← Gazebo simulation image
-│   ├── Dockerfile.slam       ← SLAM + Navigation image (cartographer + nav2)
-│   ├── Dockerfile.web        ← Web control panel image
-│   ├── docker-compose.yaml   ← base service definitions
-│   ├── docker-compose.prod.yaml ← production overrides (X11, healthchecks, limits)
-│   ├── scripts/
-│   │   ├── entrypoint.sh         ← shared ROS 2 entrypoint
-│   │   └── start_web_services.sh ← webapp startup script
-│   └── README.md
-├── real/                     ← real robot Docker files (Task 2)
-├── fastbot_description/      ← robot URDF/xacro (shared by all images)
-├── fastbot_gazebo/           ← simulation worlds and launch files
-├── fastbot_slam/             ← cartographer + nav2 launch files and maps
-├── fastbot_webapp/           ← web control panel (add when ready)
-└── tf2_web_republisher_py/   ← TF2 republisher for roslibjs
+fastbot_dockerization/
+├── docker/
+│   ├── real/                  ← real-robot Dockerfiles, compose files, CycloneDDS profiles
+│   │   ├── Dockerfile.real
+│   │   ├── Dockerfile.slam-real
+│   │   ├── Dockerfile.remote
+│   │   ├── docker-compose.yaml
+│   │   ├── docker-compose.husarnet.yaml
+│   │   ├── docker-compose.remote.yaml
+│   │   └── scripts/
+│   │       ├── fastbot.service    ← systemd unit for auto-start on Pi boot
+│   │       └── pi_setup.sh        ← one-shot Pi host setup script
+│   ├── simulation/            ← simulation Dockerfiles and compose files
+│   ├── Instructions.md        ← full step-by-step instructions and commands
+│   └── pi_setup.sh            ← Pi setup entry point
+├── fastbot_bringup/           ← real-robot orchestration launch
+├── fastbot_description/       ← URDF/xacro + robot_state_publisher
+├── fastbot_gazebo/            ← simulation worlds and launch files
+├── fastbot_slam/              ← Cartographer/Nav2 configs, launch files, saved maps
+├── serial_motor/              ← Arduino motor driver (pyserial)
+└── Lslidar_ROS2_driver/       ← LSlidar N10 driver
 ```
 
-## Initial Setup
+---
 
-### 1. Clone this repository
-```bash
-git clone https://github.com/<your_username>/fastbot_ros2_docker.git
-cd fastbot_ros2_docker
+## Images
+
+All images are published to Docker Hub under:
+
+```
+tesarect/karthikeyanbalasubramanian-cp22:<tag>
 ```
 
-### 2. Docker Hub login
-```bash
-docker login
-```
+| Tag | Target |
+|---|---|
+| `fastbot-ros2-gazebo` | Simulation — Gazebo |
+| `fastbot-ros2-slam` | Simulation — SLAM + Nav2 |
+| `fastbot-ros2-webapp` | Simulation — Web control panel |
+| `fastbot-ros2-real` | Real robot — drivers (ARM64) |
+| `fastbot-ros2-slam-real` | Real robot — Cartographer (ARM64) |
+| `fastbot-ros2-remote` | Laptop — remote RViz + ROSBridge |
 
-## Building Images
+---
 
-Always run `docker build` from the **project root** (`fastbot_ros2_docker/`):
+## Instructions
 
-```bash
-docker build -f simulation/Dockerfile.gazebo -t <username>-cp22:fastbot-ros2-gazebo .
-docker build -f simulation/Dockerfile.slam   -t <username>-cp22:fastbot-ros2-slam .
-docker build -f simulation/Dockerfile.web    -t <username>-cp22:fastbot-ros2-webapp .
-```
+All setup steps, build commands, compose invocations, and troubleshooting are documented in:
 
-## Running the Simulation
+**[docker/Instructions.md](docker/Instructions.md)**
 
-### Mapping mode (default — creates a map using Cartographer)
-```bash
-# Allow X11 forwarding for Gazebo GUI
-xhost +local:docker
-
-cd simulation
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up
-```
-
-### Navigation mode (map already saved — uses AMCL + Nav2)
-Edit `docker-compose.yaml` slam service command:
-```yaml
-command: ros2 launch fastbot_slam localization.launch.py
-```
-Then run compose as above.
-
-## Verify containers are running
-```bash
-docker ps
-```
-
-## Pushing images to Docker Hub
-```bash
-docker push <username>-cp22:fastbot-ros2-gazebo
-docker push <username>-cp22:fastbot-ros2-slam
-docker push <username>-cp22:fastbot-ros2-webapp
-```
-
-## Pulling images on a new machine
-```bash
-docker pull <username>-cp22:fastbot-ros2-gazebo
-docker pull <username>-cp22:fastbot-ros2-slam
-docker pull <username>-cp22:fastbot-ros2-webapp
-```
+This covers:
+- TheConstruct / local machine prerequisites
+- Building or pulling images
+- Running simulation (mapping and navigation modes)
+- Pi host setup (`pi_setup.sh`)
+- Bringing up the real robot
+- Establishing remote access over Husarnet
+- Map creation, saving, and loading
+- Logs, volume inspection, and common diagnostics

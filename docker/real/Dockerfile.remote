@@ -45,6 +45,8 @@ ENV DISPLAY=
 
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
 
+COPY fastbot_slam/rviz/default.rviz /ros2_ws/rviz/default.rviz
+
 COPY docker/real/scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

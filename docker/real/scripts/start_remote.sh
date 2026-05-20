@@ -51,4 +51,4 @@ echo ""
 #echo "    docker exec -it fastbot-remote rviz2"
 #echo "=============================================="
 
-wait
+sleep infinity
