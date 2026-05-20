@@ -52,7 +52,7 @@ docker-compose -f docker-compose.yaml up -d
 # start individual container
 docker-compose -f docker-compose.yaml up -d gazebo
 ```
-![running docker infos](docs/images/00-docker-infos.png)
+![running docker infos](/docs/images/00-docker-infos.png)
 ## Visualize 
 #### Through Container
 works on both local and from TheConstruct
@@ -80,6 +80,8 @@ source ~/ros2_ws/install/setup.bash
 ros2 topic list
 ```
 
+[ Check [expected result section](#expected-topics-when-fastbot-container-not-running) ]
+
 ## Maps
 By default cartographer node will be running.
 ### Create a new map
@@ -99,15 +101,15 @@ First get [connected to webpage](#connect-from-theconstruct)
 
 By now you should be seeing this by default(except rviz which you need to fire it up manually)
 
-![gazebo and Rviz](docs/images/docs/images/01-sim-gazebo-rviz-from-construct.png)
+![gazebo and Rviz](/docs/images/01-sim-gazebo-rviz-from-construct.png)
 
 After entering the webpage url you should be able to see this
 
-![webpage control](docs/images/02-webapp-sim-gazebo-from-construct.png)
+![webpage control](/docs/images/02-webapp-sim-gazebo-from-construct.png)
 
-You can update the map my moving around through the `Joystick` or `w``a``s``d` keys from the webpage
+You can update the map my moving around through the `Joystick` or `w` `a` `s` `d` keys from the webpage
 
-![Updaing map](docs/images/03-update-new-map-through-webapp.png)
+![Updaing map](/docs/images/03-update-new-map-through-webapp.png)
 
 ### Saving a map
 there is no save option from the web page directly, so back in the construct terminal execute the following
@@ -183,9 +185,9 @@ SLAM_MODE=localization MAP_NAME=room_map \
   docker-compose -f docker-compose.yaml up -d
 ```
 
-![gazebo-Rviz with existing map](docs/images/04-load-existing-map.png)
+![gazebo-Rviz with existing map](/docs/images/04-load-existing-map.png)
 
-![webpage reflecting the same](docs/images/05-existing-map-on-webpage.png)
+![webpage reflecting the same](/docs/images/05-existing-map-on-webpage.png)
 
 ### Set `initialpose`
 > [!IMPORTANT:] Default maps will run with inital pose automaticaly if defined under `/ros2_ws/map_poses.yaml`(inside fastbot-ros2-slam image).If its not defined, please do the `2D pose estimate` from `rviz`.
@@ -207,9 +209,19 @@ These are the images thats supposed to be running mandatorly for bringing up the
   - `fastbot-ros2-slam-real`  (runs cartographer for mapping by default)
   - `fastbot-remote`          (an optional image thats helps to connect to fastbot remotely)
 
+> [🚨 Important] :
+>
+> When you login (immediatly after boot), only `fastbot-ros2-real` container will be running. So you can list and view the topics.
+> 
+> `slam-real` container will **NOT** be running after boot.
+
+![ add image ]()
+
 ### Compose types:
+> [Note] switch to respective directory `cd ~/ros2_ws/src/docker/real` before bringing up any 
+
   - local
-    - robot -> `fastbot-ros2-real` (Default running service on fastbot during boot)
+    - robot -> `fastbot-ros2-real` **(Default running service on fastbot during boot)**
       ```bash
       docker-compose -f docker-compose.yaml up -d robot
       ```
@@ -228,55 +240,16 @@ These are the images thats supposed to be running mandatorly for bringing up the
       ```
 
 
+# Connect to Fastbot Locally
+Connet to your fastbot over `ssh`. If you are about to open graphical tool(Rviz or other ros rqt tools) better start ssh like this `ssh fastbot@192.168.1.100 -C -X` or  `ssh fastbot@192.168.1.100 -C -Y`
 
-## Connect to Fastbot Locally
-### From host (Pi)
-Make sure the `real` and `slam-real` are up and running.
-No additional changes needed. fastbot nodes are visible directly on the host.
-If its not visible set the env variables and try (follow the below steps)
-```bash
-# On Pi host — match the container's DDS config
-export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export ROS_DOMAIN_ID=0
-
-ros2 topic list
-
-ros2 daemon stop #(optional if topics still not visible, then procede with topic listing)
-```
-Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
-
-So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
-
-### From Container
-[TODO]
-
-### Visualize or View Topics
-#### from fastbot / host(Pi)
-> [NOTE] : This preperation works for both local and remote(husarnet) setup
-The running container `real` and `slam-real` are base images without gui. So you will be forced to use local host(Pi/fastbot) to visualize. This same configuraiton is also used to connect to fastbot locally or as a host while remote connection is established, so make sure you first export these env variables on the fastbot(Pi) as host.
-
-#### from Container
-Check topics directly on the container
-```bash
-docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
-  source /ros2_ws/install/setup.bash && 
-  ros2 topic list"
-```
-#### from host
-```bash
-ros2 topic list
-```
-
-
-## Connect to Fastbot Remotely
 ### pre-req
-By default the fastbot will be running just the essential(camera, lidar and serial motor drivers). To establish a remote connection, bring the default running service down first
+By default the fastbot will be running just the essential(camera, lidar and serial motor drivers). To start **`slam-real`** or establish a remote connection, bring the default running service down first
 
 ```bash
 sudo systemctl stop fastbot.service
 ```
-> [!WARNING]: To avoid stale containers its better to bring container down completely. Because the `fastbot.service` just `stop`'s the container and does not `down`'s the container completely, so that during shutdown, `<container> stop` is quicker that `<container> down`. Recomended to follow the below steps.
+> [⚠️ WARNING]: To avoid stale containers its better to bring container down completely. Because the `fastbot.service` just `stop`'s the container and does not `down`'s the container completely, so that during shutdown, `<container> stop` is quicker that `<container> down`. Recomended to follow the below steps.
 ```bash
 cd docker/real # make sure you switch to docker files path
 # list out running containers
@@ -284,6 +257,101 @@ docker-compose ps
 #bring the default down
 docker-compose -f docker-compose.yaml down
 ```
+[ back to [Connect to Fastbot Remotely](#connect-to-fastbot-remotely) ]
+
+### Through host (Pi)
+Make sure the `real` and `slam-real` are up and running _(after boot it will be running only `robot` in `fastbot.service` automatically)_.
+
+No additional changes needed, fastbot nodes will be visible directly on the host.
+```bash
+ros2 topic list # directly on pi / host
+```
+
+If its still not visible set the env variables and try (follow the below steps)
+```bash
+# On Pi host — match the container's env variable
+export ROS_DOMAIN_ID=0
+
+ros2 topic list
+
+ros2 daemon stop #(optional if topics still not visible, then procede with topic listing)
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp # if still not working try this and repeat the rest
+```
+
+
+### Through Container
+```bash
+docker exec -it fastbot-ros2-real bash -c "source /opt/ros/humble/setup.bash &&
+  source /ros2_ws/install/setup.bash && 
+  ros2 topic list"
+```
+[ Check [expected output](#expected-topics-when-fastbot-container-not-running) ]
+
+## Visualize
+#### from fastbot / host(Pi)
+> [NOTE] : The running container **`real` and `slam-real` are base images without gui**. So you will be forced to use local host(Pi/fastbot) to visualize. This same configuraiton is also used to connect to fastbot locally or as a host while remote connection is established, so make sure you first export these env variables on the fastbot(Pi) as host.
+
+```bash
+# Make sure `real` and `slam-real` running
+rviz2 -d ~/ros2_ws/src/fastbot_slam/rviz/default.rviz 
+```
+![ add image ]()
+
+## Maps
+### Create a new Map
+Make sure `real` and `slam-real` container are running on the Fastbot.
+#### Through host / container on host
+The `real` and `slam-real` image are not full desktop or gui based. 
+Instead you can run `rviz2` on the fastbot(host) directly while `real` and `slam-real` are running. Look at the section visualize through host, [follow this](#visualize-from-fastbot--hostpi). Once you can see the topics of fastbot, you can directly fire up `rviz2` on the host (if installed) to visualize.
+
+```bash
+# bring up rviz saved config from the repo in not running
+rviz2 -d ~/ros2_ws/src/fastbot_slam/rviz/default.rviz
+
+# If you can view topics directly from host
+ros2 run teleop_twist_keyboard teleop_twist_keyboard   --ros-args --remap cmd_vel:=fastbot/cmd_vel
+# Or
+# If you cannot view topics from host , run the same through container
+docker exec -it fastbot-ros2-slam-real bash -c \
+  "source /ros2_ws/install/setup.bash && \
+  ros2 run teleop_twist_keyboard teleop_twist_keyboard \
+  --ros-args --remap cmd_vel:=fastbot/cmd_vel"
+```
+
+<!-- #### Through Remote
+And make sure `remote` container is running on the remote machine.
+Check if topics are visible and fire up rviz.
+```bash
+# Inside remote container
+docker exec -it fastbot-remote bash -c \
+  "source /opt/ros/humble/setup.bash && \
+   source /ros2_ws/install/setup.bash 2>/dev/null || true && \
+   rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz"
+``` -->
+## Save map to volume space
+```bash
+docker exec -it fastbot-ros2-slam-real bash -c \
+"source /opt/ros/humble/setup.bash &&
+ source /ros2_ws/install/setup.bash &&
+ ros2 run nav2_map_server map_saver_cli \
+  -f /maps/my_map \
+  --ros-args -p save_map_timeout:=5.0"
+```
+
+## Load saved map from volume space
+```bash
+# Quick check to list maps under volume space
+docker exec -it fastbot-ros2-slam bash -c \
+"ls -la /maps/"
+
+SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
+  docker-compose up -d
+```
+
+# Connect to Fastbot Remotely (Husarnet)
+### pre-req
+Ref [earlier Pre-req](#pre-req-1)
+
 ### Bring up the Remote connect on the Fastbot(Pi)
 The connection is established through Husarnet and all necessary setups are done through  `docker-compose.husarnet.yaml`
 
@@ -332,6 +400,11 @@ If not visible, copy the `cyclonedds-husarnet.xml` from `docker/real/condif` and
 > [!NOTE]: your device need to be added to husarnet dashboard for this step.
 
 ```bash
+______
+# On Pi host — match the container's DDS config
+export CYCLONEDDS_URI=file:///home/fastbot/ros2_ws/src/docker/real/config/cyclonedds-husarnet.xml
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
 # Set ROS environment
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp  # Installation required
 export ROS_DOMAIN_ID=0
@@ -346,9 +419,11 @@ ros2 topic list
 # Run RViz
 rviz2
 ```
+Without setting CYCLONEDDS_URI on the host, it uses default multicast while containers use Husarnet unicast — they're on different DDS networks and can't see each other.
 
+So when running husarnet compose, set the same CYCLONEDDS_URI on the Pi host too — then both host and external machine see all topics.
 
-### Maps
+## Maps
 #### Create a new Map
 Make sure `real` and `slam-real` container are running on the Fastbot.
 #### Through host / container on host
@@ -359,22 +434,12 @@ Instead you can run `rviz2` on the fastbot(host) directly while `real` and `slam
 # bring up rviz saved config from the repo
 rviz2 -d ~/ros2_ws/src/fastbot_slam/rviz/default.rviz 
 
-docker exec -it fastbot-ros2-slam-real bash -c \
+docker exec -it fastbot-ros2-real bash -c \
   "source /ros2_ws/install/setup.bash && \
   ros2 run teleop_twist_keyboard teleop_twist_keyboard \
   --ros-args --remap cmd_vel:=fastbot/cmd_vel"
 ```
 
-#### Through Remote
-And make sure `remote` container is running on the remote machine.
-Check if topics are visible and fire up rviz.
-```bash
-# Inside remote container
-docker exec -it fastbot-remote bash -c \
-  "source /opt/ros/humble/setup.bash && \
-   source /ros2_ws/install/setup.bash 2>/dev/null || true && \
-   rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz"
-```
 # Connect to Webpage
 ## Connect from TheConstruct
 Make sure `fastbot-ros2-webapp` is running and get the address from the logs.
@@ -384,9 +449,9 @@ docker logs fastbot-ros2-webapp
 webpage_address   # to get public url
 rosbridge_address # to connect to our running ros nodes 
 ```
-![public url from theConstruct output](docs/images/07-public-url-through-construct.png)
+![public url from theConstruct output](/docs/images/07-public-url-through-construct.png)
 
-[ [back to `Update a map throug Webapp`](#update-a-map-throug-rviz-teleop) ]
+[ back to [Update a map throug Webapp](#update-a-map-throug-rviz-teleop) ]
 ## Connect from Remote Machine
 [TODO] need to move these contents here
 
@@ -518,3 +583,6 @@ $ ros2 topic list
 /tf_static
 /trajectory_node_list
 ```
+[ back to [viewing topics](#view-topics) ]
+
+[ back to [Remote connection](#connect-to-fastbot-locally) ]
