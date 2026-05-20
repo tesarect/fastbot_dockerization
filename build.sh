@@ -15,7 +15,7 @@
 set -e
 
 # ── Config ────────────────────────────────────────────────────────────────────
-REPO="${DOCKERHUB_USER:-your_username}-cp22"
+REPO="${DOCKERHUB_USER:-your_username}/karthikeyanbalasubramanian-cp22"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SIM_DIR="${PROJECT_ROOT}/simulation"
 

@@ -15,7 +15,7 @@
 set -e
 
 # ── Config ────────────────────────────────────────────────────────────────────
-REPO="${DOCKERHUB_USER:-your_username}-cp22"
+REPO="${DOCKERHUB_USER:-your_username}/karthikeyanbalasubramanian-cp22"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"   # docker/
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)" # ros2_ws/src/
 SIM_DIR="${SCRIPT_DIR}/simulation"             # docker/simulation/

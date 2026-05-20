@@ -47,4 +47,8 @@ echo "⚠️ Applying docker group changes..."
 echo 'if ! id -nG | grep -qw docker; then exec newgrp docker; fi' >> ~/.bashrc
 
 
+echo "🐳 Setting DOCKERHUB_USER as `tesarect` in ~/.bashrc..."
+grep -qxF 'export DOCKERHUB_USER="tesarect"' ~/.bashrc \
+  || echo 'export DOCKERHUB_USER="tesarect"' >> ~/.bashrc
+
 echo "✅ Setup complete!"

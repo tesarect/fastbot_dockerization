@@ -21,7 +21,7 @@ version: "3.7"
 services:
 
   gazebo:
-    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-gazebo
+    image: ${DOCKERHUB_USER:-tesarect}/karthikeyanbalasubramanian-cp22:fastbot-ros2-gazebo
     container_name: fastbot-ros2-gazebo
     networks:
       - ros2_network
@@ -39,7 +39,7 @@ services:
     command: ros2 launch fastbot_gazebo one_fastbot_room.launch.py
 
   slam:
-    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-slam
+    image: ${DOCKERHUB_USER:-tesarect}/karthikeyanbalasubramanian-cp22:fastbot-ros2-slam
     container_name: fastbot-ros2-slam
     networks:
       - ros2_network
@@ -61,7 +61,7 @@ services:
     command: /ros2_ws/start_slam.sh
 
   webapp:
-    image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-webapp
+    image: ${DOCKERHUB_USER:-tesarect}/karthikeyanbalasubramanian-cp22:fastbot-ros2-webapp
     container_name: fastbot-ros2-webapp
     networks:
       - ros2_network
