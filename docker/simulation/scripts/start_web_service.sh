@@ -37,9 +37,13 @@ nginx -g "daemon off;" &
 echo ""
 echo "=============================================="
 echo " All services started!"
+echo "  Web App:          http://localhost:7000"
 echo "  ROSBridge:        ws://localhost:9090"
 echo "  Web Video Server: http://localhost:11315"
-echo "  Web App:          http://localhost:7000"
+echo ""
+echo "  [The Construct] In the HOST terminal run:"
+echo "    webpage_address 7000   -> paste this URL in your browser"
+echo "    webpage_address 9090   -> paste this as the ROSBridge address"
 echo "=============================================="
 
 wait

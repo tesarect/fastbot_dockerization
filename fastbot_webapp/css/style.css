@@ -254,6 +254,8 @@ kbd {
 }
 .wp-btn:hover { border-color: var(--accent); color: var(--accent); background: #00e5ff0d; }
 .wp-btn.active { border-color: var(--accent-ok); color: var(--accent-ok); background: #00ff8810; }
+.wp-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.wp-btn:disabled:hover { border-color: var(--border); color: var(--text); background: transparent; }
 .wp-icon { font-size: 12px; width: 14px; text-align: center; flex-shrink: 0; }
 .stop-btn {
   width: 100%; background: transparent;
