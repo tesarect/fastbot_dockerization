@@ -37,7 +37,9 @@ docker build simulation/ [TODO: fill the commands]
 ```
 To pull the images from dockerhub
 ```bash
-
+docker pull tesarect/karthikeyanbalasubramanian-cp22:fastbot-ros2-gazebo
+docker pull tesarect/karthikeyanbalasubramanian-cp22:fastbot-ros2-slam
+docker pull tesarect/karthikeyanbalasubramanian-cp22:fastbot-ros2-webapp
 ```
 
 ## Start containers
@@ -45,20 +47,19 @@ To pull the images from dockerhub
 cd ~/ros2_ws/src/fastbot_ros2_docker/simulation
 
 # starts all 3 containers
-docker-compose -f docker-compose.yaml up -d            # on TheConstruct
-DOCKERHUB_USER=tesarect docker-compose -f docker-compose.yaml docker-compose.rosnet.yaml up -d   # on your local
+docker-compose -f docker-compose.yaml up -d
 
 # start individual container
 docker-compose -f docker-compose.yaml up -d gazebo
 ```
-
+![running docker infos](docs/images/00-docker-infos.png)
 ## Visualize 
 #### Through Container
 works on both local and from TheConstruct
 ```bash
 docker exec -it fastbot-ros2-gazebo bash -c \
-"source install/setup.bash && \
-rviz2 -d src/fastbot_description/rviz/fastbot.rviz"
+  "source install/setup.bash && \
+  rviz2 -d src/fastbot_description/rviz/fastbot.rviz"
 ```
 
 #### Through Host
@@ -82,6 +83,7 @@ ros2 topic list
 ## Maps
 By default cartographer node will be running.
 ### Create a new map
+#### update a map throug Rviz-Teleop
 Keep the `gazebo` and `slam` running along with `rviz`, move the robot around the space either through teleop or throug webinterface.
 ```bash
 # Teleop
@@ -90,7 +92,25 @@ docker exec -it fastbot-ros2-slam bash -c \
   ros2 run teleop_twist_keyboard teleop_twist_keyboard \
   --ros-args --remap cmd_vel:=fastbot/cmd_vel"
 ```
-Once the area is covered save the map  to a volume mount point using
+Once the area is covered save the map  to a volume mount point using.
+
+#### update a map throug Webapp
+First get [connected to webpage](#connect-from-theconstruct)
+
+By now you should be seeing this by default(except rviz which you need to fire it up manually)
+
+![gazebo and Rviz](docs/images/docs/images/01-sim-gazebo-rviz-from-construct.png)
+
+After entering the webpage url you should be able to see this
+
+![webpage control](docs/images/02-webapp-sim-gazebo-from-construct.png)
+
+You can update the map my moving around through the `Joystick` or `w``a``s``d` keys from the webpage
+
+![Updaing map](docs/images/03-update-new-map-through-webapp.png)
+
+### Saving a map
+there is no save option from the web page directly, so back in the construct terminal execute the following
 ```bash
 # Save map to Volume
 docker exec -it fastbot-ros2-slam bash -c \
@@ -100,16 +120,16 @@ docker exec -it fastbot-ros2-slam bash -c \
   -f /maps/my_map \
   --ros-args -p save_map_timeout:=5.0"
 ```
-or, enter into the container
-```bash
-docker exec -it fastbot-ros2-slam bash
-```
-then save the map to a volume mount point
-```bash
-ros2 run nav2_map_server map_saver_cli \
-  -f /maps/my_map \
-  --ros-args -p save_map_timeout:=5.0
-```
+> [🔁Alternatively] you can enter into the container
+> ```bash
+> docker exec -it fastbot-ros2-slam bash
+> ```
+> then save the map to a volume mount point
+> ```bash
+> ros2 run nav2_map_server map_saver_cli \
+>   -f /maps/my_map \
+>   --ros-args -p save_map_timeout:=5.0
+> ```
 
 #### Expected Output:
 ```bash
@@ -152,35 +172,34 @@ docker exec -it fastbot-ros2-slam bash -c \
 
 SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
   docker-compose up -d
-
-DOCKERHUB_USER=tesarect SLAM_MODE=localization MAP_NAME=my_map MAP_FILE=/maps/my_map.yaml \
-  docker-compose up -d
 ```
+maps generated 
 #### From Pre-existing (available inside container)
+[TODO] Update existing/available images from the packages
 ```bash
-SLAM_MODE=localization MAP_NAME=room_map docker-compose up
+SLAM_MODE=localization MAP_NAME=room_map docker-compose up -d
 # or
 SLAM_MODE=localization MAP_NAME=room_map \
-  docker-compose -f docker-compose.yaml up
+  docker-compose -f docker-compose.yaml up -d
 ```
 
+![gazebo-Rviz with existing map](docs/images/04-load-existing-map.png)
+
+![webpage reflecting the same](docs/images/05-existing-map-on-webpage.png)
 
 ### Set `initialpose`
-> [!IMPORTANT:] Default maps will run with inital pose automaticaly if defined under `/ros2_ws/map_poses.yaml`(inside fastbot-ros2-slam image).If its not defined, please do the `2D pose estimate` from rviz.
-```
-docker exec -it fastbot-ros2-slam bash -c \
-"source /ros2_ws/install/setup.bash &&
-ros2 topic pub --once /initialpose \
-  geometry_msgs/msg/PoseWithCovarianceStamped \
-  '{header: {frame_id: "map"}, 
-    pose: {pose: {position: {x: 0.0, y: 0.0, z: 0.0}, 
-    orientation: {w: 1.0}}}}'"
-```
-## Control through Webpage
-Make sure `fastbot-ros2-webapp` is running and get the address from the logs
-```bash
-docker logs fastbot-ros2-webapp
-```
+> [!IMPORTANT:] Default maps will run with inital pose automaticaly if defined under `/ros2_ws/map_poses.yaml`(inside fastbot-ros2-slam image).If its not defined, please do the `2D pose estimate` from `rviz`.
+
+> [🔁Alternatively] through cmd
+> ```bash
+> docker exec -it fastbot-ros2-slam bash -c \
+> "source /ros2_ws/install/setup.bash &&
+> ros2 topic pub --once /initialpose \
+>   geometry_msgs/msg/PoseWithCovarianceStamped \
+>   '{header: {frame_id: "map"}, 
+>     pose: {pose: {position: {x: 0.0, y: 0.0, z: 0.0}, 
+>     orientation: {w: 1.0}}}}'"
+> ```
 
 # Real Environment (Fastbot)
 These are the images thats supposed to be running mandatorly for bringing up the fastbot
@@ -286,7 +305,7 @@ cd ~/ros2_ws/src
 # Build
 docker build \
   -f docker/real/Dockerfile.remote \
-  -t tesarect-cp22:fastbot-ros2-remote .
+  -t tesarect/karthikeyanbalasubramanian-cp22:fastbot-ros2-remote .
 
 # Run
 cd ~/ros2_ws/src/docker/real
@@ -356,6 +375,20 @@ docker exec -it fastbot-remote bash -c \
    source /ros2_ws/install/setup.bash 2>/dev/null || true && \
    rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz"
 ```
+# Connect to Webpage
+## Connect from TheConstruct
+Make sure `fastbot-ros2-webapp` is running and get the address from the logs.
+```bash
+docker logs fastbot-ros2-webapp
+
+webpage_address   # to get public url
+rosbridge_address # to connect to our running ros nodes 
+```
+![public url from theConstruct output](docs/images/07-public-url-through-construct.png)
+
+[ [back to `Update a map throug Webapp`](#update-a-map-throug-rviz-teleop) ]
+## Connect from Remote Machine
+[TODO] need to move these contents here
 
 ## Help yourself
 
@@ -429,6 +462,7 @@ $ docker volume inspect fastbot-maps
     }
 ]
 ```
+[back to Load maps from volumes](#from-volume)
 
 ### For Remote ip6 inspection
 ```bash
