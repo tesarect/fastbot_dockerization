@@ -13,7 +13,7 @@
 #   Build image (once, on laptop):
 #     cd ~/ros2_ws/src
 #     docker build -f docker/real/Dockerfile.remote \
-#       -t tesarect-cp22:fastbot-ros2-remote .
+#       -t ${DOCKERHUB_USER:-tesarect}/karthikeyanbalasubramanian-cp22:fastbot-ros2-remote .
 #
 #   Run:
 #     cd docker/real
@@ -30,8 +30,7 @@ version: "3.7"
 
 services:
   remote:
-    #image: ${DOCKERHUB_USER:-your_username}-cp22:fastbot-ros2-remote
-    image: tesarect-cp22:fastbot-ros2-remote
+    image: ${DOCKERHUB_USER:-tesarect}/karthikeyanbalasubramanian-cp22:fastbot-ros2-remote
     container_name: fastbot-remote
     network_mode: host
     environment:

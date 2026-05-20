@@ -32,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-v4l2-camera \
     ros-humble-image-transport-plugins \
     v4l-utils \
+    # Teleop keyboard
+    ros-humble-teleop-twist-keyboard \
+    # misl
     vim \
     nano \
     && rm -rf /var/lib/apt/lists/*
